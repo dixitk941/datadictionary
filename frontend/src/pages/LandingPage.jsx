@@ -1,8 +1,9 @@
 import { useRef, useEffect, useLayoutEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Database, Sparkles, Shield, MessageCircle, TrendingUp, Zap, ArrowRight, ChevronDown, Play } from 'lucide-react'
+import { Database, Sparkles, Shield, MessageCircle, Lock, Zap, ArrowRight, ChevronDown, Play } from 'lucide-react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import HeroIllustration from '../components/HeroIllustration'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -56,6 +57,7 @@ export default function LandingPage() {
         .from('.landing-hero-subtitle', { y: 30, opacity: 0, duration: 0.7 }, '-=0.4')
         .from('.landing-hero-actions', { y: 30, opacity: 0, duration: 0.7 }, '-=0.3')
         .from('.cin-stats', { y: 30, opacity: 0, duration: 0.7 }, '-=0.2')
+        .from('.hero-illustration', { x: 80, opacity: 0, scale: 0.9, duration: 1.1, ease: 'power2.out' }, '-=1.2')
         .from('.landing-scroll-indicator', { opacity: 0, duration: 0.6 }, '-=0.1')
 
       /* Background glows — slow parallax float */
@@ -73,93 +75,98 @@ export default function LandingPage() {
       })
 
       /* PRODUCT PREVIEW — cinematic scale-up from distance */
-      gsap.from('.cin-preview-window', {
-        scale: 0.85,
-        opacity: 0,
-        y: 80,
-        rotateX: 8,
-        duration: 1.2,
-        ease: 'power2.out',
-        scrollTrigger: { trigger: '.cin-preview-section', start: 'top 75%', toggleActions: 'play none none none' },
+      const previewTl = gsap.timeline({
+        scrollTrigger: { trigger: '.cin-preview-section', start: 'top 80%', once: true },
       })
-      /* stagger preview rows like data loading in */
-      gsap.from('.cin-preview-row', {
-        x: -20, opacity: 0,
-        stagger: 0.12,
-        duration: 0.5,
-        ease: 'power2.out',
-        scrollTrigger: { trigger: '.cin-preview-main', start: 'top 80%' },
-      })
-      gsap.from('.cin-preview-ai', {
-        y: 15, opacity: 0,
-        duration: 0.6,
-        delay: 0.4,
-        ease: 'power2.out',
-        scrollTrigger: { trigger: '.cin-preview-main', start: 'top 80%' },
-      })
+      previewTl.fromTo('.cin-preview-window',
+        { scale: 0.85, opacity: 0, y: 80, rotateX: 8 },
+        { scale: 1, opacity: 1, y: 0, rotateX: 0, duration: 1.2, ease: 'power2.out' },
+      )
+      previewTl.fromTo('.cin-preview-row',
+        { x: -20, opacity: 0 },
+        { x: 0, opacity: 1, stagger: 0.12, duration: 0.5, ease: 'power2.out' },
+        '-=0.6'
+      )
+      previewTl.fromTo('.cin-preview-ai',
+        { y: 15, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out' },
+        '-=0.2'
+      )
 
-      /* FEATURES — cards fly in with stagger */
-      gsap.from('.landing-section-header', {
-        y: 40, opacity: 0, duration: 0.8, ease: 'power3.out',
-        scrollTrigger: { trigger: '.landing-features', start: 'top 80%' },
+      /* FEATURES — header + cards fly in with stagger */
+      const featHeaderTl = gsap.timeline({
+        scrollTrigger: { trigger: '.landing-features', start: 'top 85%', once: true },
       })
-      gsap.from('.landing-feature-card', {
-        y: 60, opacity: 0, scale: 0.95,
-        stagger: 0.1,
-        duration: 0.7,
-        ease: 'back.out(1.2)',
-        scrollTrigger: { trigger: '.landing-features-grid', start: 'top 82%' },
-      })
+      featHeaderTl.fromTo('.landing-features .landing-section-header',
+        { y: 40, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' },
+      )
 
-      /* HOW IT WORKS — steps slide in from left sequentially */
-      gsap.from('.cin-step', {
-        x: -60, opacity: 0, scale: 0.9,
-        stagger: 0.2,
-        duration: 0.8,
-        ease: 'power3.out',
-        scrollTrigger: { trigger: '.cin-steps', start: 'top 80%' },
+      const featCardsTl = gsap.timeline({
+        scrollTrigger: { trigger: '.landing-features-grid', start: 'top 90%', once: true },
       })
-      /* connecting lines grow */
-      gsap.from('.cin-step-line', {
-        scaleX: 0, transformOrigin: 'left center',
-        stagger: 0.2,
-        duration: 0.6,
-        delay: 0.3,
-        ease: 'power2.inOut',
-        scrollTrigger: { trigger: '.cin-steps', start: 'top 80%' },
+      featCardsTl.fromTo('.landing-feature-card',
+        { y: 50, opacity: 0, scale: 0.95 },
+        { y: 0, opacity: 1, scale: 1, stagger: 0.1, duration: 0.7, ease: 'back.out(1.2)' },
+      )
+
+      /* HOW IT WORKS — header + steps */
+      const howHeaderTl = gsap.timeline({
+        scrollTrigger: { trigger: '.landing-how-it-works', start: 'top 85%', once: true },
       })
+      howHeaderTl.fromTo('.landing-how-it-works .landing-section-header',
+        { y: 40, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' },
+      )
+      /* Steps */
+      const stepsTl = gsap.timeline({
+        scrollTrigger: { trigger: '.cin-steps', start: 'top 88%', once: true },
+      })
+      stepsTl.fromTo('.cin-step',
+        { x: -60, opacity: 0, scale: 0.9 },
+        { x: 0, opacity: 1, scale: 1, stagger: 0.2, duration: 0.8, ease: 'power3.out' },
+      )
+      stepsTl.fromTo('.cin-step-line',
+        { scaleX: 0 },
+        { scaleX: 1, transformOrigin: 'left center', stagger: 0.2, duration: 0.6, ease: 'power2.inOut' },
+        '-=0.6'
+      )
 
       /* AI SECTION — split reveal: text from left, demo from right */
-      gsap.from('.landing-ai-text', {
-        x: -60, opacity: 0, duration: 0.9, ease: 'power3.out',
-        scrollTrigger: { trigger: '.landing-ai-section', start: 'top 75%' },
+      const aiTl = gsap.timeline({
+        scrollTrigger: { trigger: '.landing-ai-section', start: 'top 85%', once: true },
       })
-      gsap.from('.landing-ai-demo', {
-        x: 60, opacity: 0, duration: 0.9, ease: 'power3.out',
-        scrollTrigger: { trigger: '.landing-ai-section', start: 'top 75%' },
-      })
+      aiTl.fromTo('.landing-ai-text',
+        { x: -60, opacity: 0 },
+        { x: 0, opacity: 1, duration: 0.9, ease: 'power3.out' },
+      )
+      aiTl.fromTo('.landing-ai-demo',
+        { x: 60, opacity: 0 },
+        { x: 0, opacity: 1, duration: 0.9, ease: 'power3.out' },
+        '-=0.7'
+      )
       /* chat messages type in */
-      gsap.from('.chat-preview-message', {
-        y: 20, opacity: 0,
-        stagger: 0.3,
-        duration: 0.6,
-        ease: 'power2.out',
-        scrollTrigger: { trigger: '.landing-chat-preview', start: 'top 85%' },
-      })
+      aiTl.fromTo('.chat-preview-message',
+        { y: 20, opacity: 0 },
+        { y: 0, opacity: 1, stagger: 0.3, duration: 0.6, ease: 'power2.out' },
+        '-=0.3'
+      )
 
       /* CTA — dramatic scale entrance */
-      gsap.from('.landing-cta-content', {
-        scale: 0.9, opacity: 0, y: 40,
-        duration: 1,
-        ease: 'power3.out',
-        scrollTrigger: { trigger: '.landing-cta', start: 'top 80%' },
-      })
+      gsap.fromTo('.landing-cta-content',
+        { scale: 0.9, opacity: 0, y: 40 },
+        { scale: 1, opacity: 1, y: 0, duration: 1, ease: 'power3.out',
+          scrollTrigger: { trigger: '.landing-cta', start: 'top 85%', once: true },
+        },
+      )
 
       /* FOOTER slide up */
-      gsap.from('.landing-footer-content', {
-        y: 30, opacity: 0, duration: 0.6,
-        scrollTrigger: { trigger: '.landing-footer', start: 'top 95%' },
-      })
+      gsap.fromTo('.landing-footer-content',
+        { y: 30, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.6,
+          scrollTrigger: { trigger: '.landing-footer', start: 'top 95%', once: true },
+        },
+      )
 
     }, mainRef)
 
@@ -187,41 +194,46 @@ export default function LandingPage() {
           </div>
         </nav>
 
-        <div className="landing-hero-content">
-          <div className="landing-hero-badge">
-            <Sparkles size={14} />
-            AI-Powered Data Documentation
-          </div>
-          <h1 className="cin-hero-title">
-            <span className="text-gradient">Understand</span> your databases<br/>in minutes
-          </h1>
-          <p className="landing-hero-subtitle">
-            Connect to any database, extract metadata automatically, analyze data quality,
-            and generate business-friendly documentation — all with AI assistance.
-          </p>
-          <div className="landing-hero-actions">
-            <button className="btn btn-primary btn-lg cin-btn-glow" onClick={() => navigate('/signup')}>
-              Get Started Free <ArrowRight size={18} />
-            </button>
-            <button className="btn btn-outline btn-lg" onClick={() => navigate('/login')}>
-              <Play size={16} /> Watch Demo
-            </button>
+        <div className="cin-hero-split">
+          <div className="landing-hero-content">
+            <div className="landing-hero-badge">
+              <Sparkles size={14} />
+              AI-Powered Data Documentation
+            </div>
+            <h1 className="cin-hero-title">
+              <span className="text-gradient">Understand</span> your databases<br/>in minutes
+            </h1>
+            <p className="landing-hero-subtitle">
+              Connect to any database, extract metadata automatically, analyze data quality,
+              and generate business-friendly documentation — all with AI assistance.
+            </p>
+            <div className="landing-hero-actions">
+              <button className="btn btn-primary btn-lg cin-btn-glow" onClick={() => navigate('/signup')}>
+                Get Started Free <ArrowRight size={18} />
+              </button>
+              <button className="btn btn-outline btn-lg" onClick={() => navigate('/login')}>
+                <Play size={16} /> Watch Demo
+              </button>
+            </div>
+
+            {/* Stats */}
+            <div className="cin-stats">
+              <div className="cin-stat">
+                <Counter end={50} suffix="+" /><span>Databases Supported</span>
+              </div>
+              <div className="cin-stat-divider" />
+              <div className="cin-stat">
+                <Counter end={10} suffix="x" /><span>Faster Documentation</span>
+              </div>
+              <div className="cin-stat-divider" />
+              <div className="cin-stat">
+                <Counter end={99} suffix="%" /><span>Accuracy Rate</span>
+              </div>
+            </div>
           </div>
 
-          {/* Stats */}
-          <div className="cin-stats">
-            <div className="cin-stat">
-              <Counter end={50} suffix="+" /><span>Databases Supported</span>
-            </div>
-            <div className="cin-stat-divider" />
-            <div className="cin-stat">
-              <Counter end={10} suffix="x" /><span>Faster Documentation</span>
-            </div>
-            <div className="cin-stat-divider" />
-            <div className="cin-stat">
-              <Counter end={99} suffix="%" /><span>Accuracy Rate</span>
-            </div>
-          </div>
+          {/* Hero SVG Illustration */}
+          <HeroIllustration />
         </div>
         <div className="landing-scroll-indicator">
           <ChevronDown size={24} /><span>Scroll to explore</span>
@@ -266,12 +278,36 @@ export default function LandingPage() {
         </div>
         <div className="landing-features-grid">
           {[
-            { icon: Database,       title: 'Multi-Database Support', desc: 'Connect to PostgreSQL, SQL Server, Snowflake, SQLite and more. One platform for all your databases.' },
-            { icon: Zap,            title: 'Auto Schema Extraction', desc: 'Automatically extract tables, columns, relationships, and constraints from your database.' },
-            { icon: Shield,         title: 'Data Quality Analysis',  desc: 'Identify null values, duplicates, data patterns, and anomalies across your entire database.' },
-            { icon: Sparkles,       title: 'AI Documentation',       desc: 'Generate human-readable descriptions for tables and columns using advanced AI models.' },
-            { icon: MessageCircle,  title: 'Interactive Chat',       desc: 'Ask questions about your data in natural language. Get instant answers powered by Mistral AI.' },
-            { icon: TrendingUp,     title: 'Quality Metrics',        desc: 'Track completeness, consistency, and accuracy scores for every table in your database.' },
+            {
+              icon: Database,
+              title: 'Multi-Database Connectivity',
+              desc: 'Connect to PostgreSQL, SQL Server, Snowflake, and SQLite. Secure credential management with connection testing and validation built in.',
+            },
+            {
+              icon: Zap,
+              title: 'Automatic Schema Extraction',
+              desc: 'Extract tables, views, columns, data types, primary & foreign keys, indexes, constraints, and table relationships — all automatically.',
+            },
+            {
+              icon: Shield,
+              title: 'Data Quality Analysis',
+              desc: 'Completeness scores, uniqueness metrics, statistical summaries (mean, stddev, min/max), text length analysis, and overall quality scores per table.',
+            },
+            {
+              icon: Sparkles,
+              title: 'AI-Powered Documentation ✨',
+              desc: 'Personalized AI summaries via Mistral AI with 4 user profiles (beginner, business, technical, default) and industry-specific explanations.',
+            },
+            {
+              icon: MessageCircle,
+              title: 'Interactive AI Chat 💬',
+              desc: 'Natural language Q&A about your database with context-aware, multi-turn conversations. Per-table chat history persisted in Firebase Firestore.',
+            },
+            {
+              icon: Lock,
+              title: 'Firebase Authentication 🔐',
+              desc: 'Email/password and Google OAuth sign-in with full user session management and protected routes for enterprise-grade security.',
+            },
           ].map(({ icon: Icon, title, desc }) => (
             <div className="landing-feature-card" key={title}>
               <div className="landing-feature-icon"><Icon size={28} /></div>

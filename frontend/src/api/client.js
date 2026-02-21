@@ -49,6 +49,12 @@ export function getQualityReport(connId, table, schema) {
   return request(`/quality/${connId}/tables/${encodeURIComponent(table)}${qs}`)
 }
 
+// ── Analytics ─────────────────────────────────────
+export function getAnalytics(connId, schema) {
+  const qs = schema ? `?schema=${encodeURIComponent(schema)}` : ''
+  return request(`/analytics/${connId}${qs}`)
+}
+
 // ── AI ────────────────────────────────────────────
 export function getAISummary(connId, table, schema) {
   const qs = schema ? `?schema=${encodeURIComponent(schema)}` : ''

@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from config import settings
-from routers import connections, metadata, quality, ai_summary, chat
+from routers import connections, metadata, quality, ai_summary, chat, analytics
 from services.db_connector import load_cached_connections
 
 app = FastAPI(
@@ -36,6 +36,7 @@ app.include_router(metadata.router, prefix="/api/metadata", tags=["Metadata"])
 app.include_router(quality.router, prefix="/api/quality", tags=["Data Quality"])
 app.include_router(ai_summary.router, prefix="/api/ai", tags=["AI"])
 app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
+app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
 
 
 @app.get("/api/health")
