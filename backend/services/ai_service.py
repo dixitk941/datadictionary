@@ -1,18 +1,19 @@
 """
-AI summary generator – uses OpenAI GPT to produce business-friendly
-descriptions of tables, columns, and data quality findings.
+AI service – uses Mistral AI to produce business-friendly
+descriptions of tables, columns, and data quality findings,
+and powers the interactive chat.
 """
 import json
-from openai import OpenAI
+from mistralai import Mistral
 from config import settings
 
 _client = None
 
 
-def _get_client() -> OpenAI:
+def _get_client() -> Mistral:
     global _client
     if _client is None:
-        _client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        _client = Mistral(api_key=settings.MISTRAL_API_KEY)
     return _client
 
 
@@ -34,8 +35,8 @@ def generate_table_summary(table_meta: dict, quality_report: dict | None = None)
             f"\n## Data quality report\n```json\n{json.dumps(quality_report, default=str, indent=2)}\n```\n"
         )
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
+    response = client.chat.complete(
+        model="mistral-small-latest",
         messages=[{"role": "user", "content": "\n".join(prompt_parts)}],
         temperature=0.3,
         max_tokens=2000,
@@ -58,8 +59,8 @@ def chat_about_data(messages: list[dict], context: str = "") -> str:
 
     chat_messages = [{"role": "system", "content": system_msg}] + messages
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
+    response = client.chat.complete(
+        model="mistral-small-latest",
         messages=chat_messages,
         temperature=0.4,
         max_tokens=1500,

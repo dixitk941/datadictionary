@@ -1,0 +1,15 @@
+{
+  "cad9e6fe-7824-478f-bc86-0377dfd62bda": {
+    "id": "cad9e6fe-7824-478f-bc86-0377dfd62bda",
+    "name": "postgresql_cad9e6fe",
+    "db_type": "postgresql",
+    "config": {
+      "host": "aws-1-ap-northeast-1.pooler.supabase.com",
+      "port": 6543,
+      "database": "postgres",
+      "user": "postgres.zjetsqkugndsncrlluxt",
+      "password": "N1d0RG0kQDk1dmlDK3hh",
+      "schema": "public"
+    }
+  }
+}

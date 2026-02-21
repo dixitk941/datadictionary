@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { Key, Link as LinkIcon, Sparkles, ShieldCheck, BarChart3 } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { getTableDetail, getQualityReport, getAISummary } from '../api/client'
 
 export default function TableDetailPage() {
@@ -263,8 +265,8 @@ export default function TableDetailPage() {
       {tab === 'ai' && (
         <div className="card">
           {summary ? (
-            <div className="markdown-content" style={{ whiteSpace: 'pre-wrap' }}>
-              {summary}
+            <div className="markdown-content">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
             </div>
           ) : (
             <div className="empty-state">

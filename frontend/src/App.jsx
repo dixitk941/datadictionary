@@ -18,12 +18,14 @@ const navItems = [
 export default function App() {
   return (
     <div className="app-layout">
-      {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <Sparkles size={22} />
+          <Sparkles size={20} />
           DataDict AI
         </div>
+
+        <div className="sidebar-section-label">Navigation</div>
+
         {navItems.map((item) => (
           <NavLink
             key={item.to}
@@ -33,13 +35,16 @@ export default function App() {
               `sidebar-link ${isActive ? 'active' : ''}`
             }
           >
-            <item.icon size={18} />
+            <item.icon size={17} />
             {item.label}
           </NavLink>
         ))}
+
+        <div className="sidebar-footer">
+          Powered by Mistral AI
+        </div>
       </aside>
 
-      {/* Main */}
       <main className="main-content">
         <Routes>
           <Route path="/" element={<DashboardPage />} />

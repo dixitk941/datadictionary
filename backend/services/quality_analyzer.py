@@ -12,22 +12,41 @@ def _q(name: str) -> str:
     return f'"{name}"'
 
 
+def _safe_execute(conn, sql: str):
+    """Execute SQL with proper error handling and rollback."""
+    try:
+        return conn.execute(text(sql))
+    except Exception as e:
+        conn.rollback()
+        raise e
+
+
 def analyze_table(conn_id: str, table: str, schema: str = None, sample_limit: int = 50000) -> dict:
     """Run a comprehensive quality analysis on a single table."""
     engine = get_engine(conn_id)
     qualified = f'{_q(schema)}.{_q(table)}' if schema else _q(table)
 
     with engine.connect() as conn:
-        # Total rows
-        row_count = conn.execute(text(f"SELECT COUNT(*) FROM {qualified}")).scalar()
+        try:
+            # Total rows
+            result = conn.execute(text(f"SELECT COUNT(*) FROM {qualified}"))
+            row_count = result.scalar()
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            raise e
+        
         if row_count == 0:
             return {"table": table, "schema": schema, "row_count": 0, "columns": [], "overall_score": 0}
 
         # Get column names & types
-        cols_result = conn.execute(text(
-            f"SELECT * FROM {qualified} LIMIT 0"
-        ))
-        col_names = list(cols_result.keys())
+        try:
+            cols_result = conn.execute(text(f"SELECT * FROM {qualified} LIMIT 0"))
+            col_names = list(cols_result.keys())
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            raise e
 
         column_reports = []
         total_completeness = 0
@@ -51,16 +70,29 @@ def analyze_table(conn_id: str, table: str, schema: str = None, sample_limit: in
 
 def _analyze_column(conn, qualified_table: str, col: str, row_count: int, sample_limit: int) -> dict:
     qc = _q(col)
+    
     # Null count
-    null_count = conn.execute(
-        text(f"SELECT COUNT(*) FROM {qualified_table} WHERE {qc} IS NULL")
-    ).scalar()
+    try:
+        null_count = conn.execute(
+            text(f"SELECT COUNT(*) FROM {qualified_table} WHERE {qc} IS NULL")
+        ).scalar()
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        null_count = 0
+    
     completeness = round((row_count - null_count) / row_count, 4) if row_count else 0
 
     # Distinct count
-    distinct_count = conn.execute(
-        text(f"SELECT COUNT(DISTINCT {qc}) FROM {qualified_table}")
-    ).scalar()
+    try:
+        distinct_count = conn.execute(
+            text(f"SELECT COUNT(DISTINCT {qc}) FROM {qualified_table}")
+        ).scalar()
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        distinct_count = 0
+    
     uniqueness = round(distinct_count / row_count, 4) if row_count else 0
 
     report = {
@@ -83,6 +115,7 @@ def _analyze_column(conn, qualified_table: str, col: str, row_count: int, sample
             f"FROM {qualified_table} "
             f"WHERE {qc} IS NOT NULL"
         )).mappings().first()
+        conn.commit()
 
         if stats_row and stats_row["mean_val"] is not None:
             mean = float(stats_row["mean_val"])
@@ -95,7 +128,7 @@ def _analyze_column(conn, qualified_table: str, col: str, row_count: int, sample
                 "cv": round(stddev / mean, 4) if mean != 0 else None,
             }
     except Exception:
-        pass  # non-numeric column
+        conn.rollback()  # Important: rollback failed transaction
 
     # Text-length stats for string-like columns (fallback)
     if report["stats"] is None:
@@ -108,6 +141,8 @@ def _analyze_column(conn, qualified_table: str, col: str, row_count: int, sample
                 f"FROM {qualified_table} "
                 f"WHERE {qc} IS NOT NULL"
             )).mappings().first()
+            conn.commit()
+            
             if len_row and len_row["avg_len"] is not None:
                 report["stats"] = {
                     "type": "text_length",
@@ -116,7 +151,7 @@ def _analyze_column(conn, qualified_table: str, col: str, row_count: int, sample
                     "avg_length": round(float(len_row["avg_len"]), 2),
                 }
         except Exception:
-            pass
+            conn.rollback()
 
     return report
 

@@ -7,6 +7,7 @@ import uvicorn
 
 from config import settings
 from routers import connections, metadata, quality, ai_summary, chat
+from services.db_connector import load_cached_connections
 
 app = FastAPI(
     title="Data Dictionary Generator",
@@ -21,6 +22,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Load cached database connections on startup."""
+    load_cached_connections()
+
 
 # ── Routes ──────────────────────────────────────────────
 app.include_router(connections.router, prefix="/api/connections", tags=["Connections"])

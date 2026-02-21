@@ -79,8 +79,14 @@ def get_table_row_count(conn_id: str, table: str, schema: str = None) -> int:
     engine = get_engine(conn_id)
     qualified = f'"{schema}"."{table}"' if schema else f'"{table}"'
     with engine.connect() as conn:
-        result = conn.execute(text(f"SELECT COUNT(*) FROM {qualified}"))
-        return result.scalar()
+        try:
+            result = conn.execute(text(f"SELECT COUNT(*) FROM {qualified}"))
+            count = result.scalar()
+            conn.commit()
+            return count
+        except Exception as e:
+            conn.rollback()
+            raise e
 
 
 def get_full_table_metadata(conn_id: str, table: str, schema: str = None) -> dict:

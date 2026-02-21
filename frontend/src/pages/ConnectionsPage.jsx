@@ -76,7 +76,7 @@ export default function ConnectionsPage() {
         <div className="card mb-6">
           <h2 className="card-title">Add Connection</h2>
           {error && (
-            <div style={{ background: 'rgba(239,68,68,0.1)', padding: '10px 16px', borderRadius: 8, marginBottom: 16, color: 'var(--danger)', fontSize: '0.85rem' }}>
+            <div className="error-banner">
               {error}
             </div>
           )}
