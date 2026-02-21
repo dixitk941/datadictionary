@@ -3,30 +3,20 @@ import { Send, Sparkles, Trash2, MessageSquare, Plus, Database, Table, ChevronDo
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { sendChatMessage, getConnections, getSchemas, getTables, getTableDetail } from '../api/client'
+import { useAuth } from '../contexts/AuthContext'
+import {
+  getUserChats,
+  createChat as createFirestoreChat,
+  updateChat as updateFirestoreChat,
+  deleteChat as deleteFirestoreChat
+} from '../services/firestoreService'
 
-// Storage keys
-const CHATS_STORAGE_KEY = 'dd_chat_history'
+// Local storage key for active chat (per-session)
 const ACTIVE_CHAT_KEY = 'dd_active_chat'
 
-// Helper to generate chat ID
-const generateChatId = () => `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-
-// Load all chats from localStorage
-const loadAllChats = () => {
-  try {
-    const stored = localStorage.getItem(CHATS_STORAGE_KEY)
-    return stored ? JSON.parse(stored) : {}
-  } catch {
-    return {}
-  }
-}
-
-// Save all chats to localStorage
-const saveAllChats = (chats) => {
-  localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(chats))
-}
-
 export default function ChatPage() {
+  const { user } = useAuth()
+  
   // Connection/Table selection
   const [connections, setConnections] = useState([])
   const [selectedConnId, setSelectedConnId] = useState('')
@@ -37,32 +27,41 @@ export default function ChatPage() {
   const [tableContext, setTableContext] = useState('')
 
   // Chat state
-  const [allChats, setAllChats] = useState({}) // { chatId: { id, connId, schema, table, title, messages, createdAt } }
+  const [allChats, setAllChats] = useState([])
   const [activeChatId, setActiveChatId] = useState(null)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadingChats, setLoadingChats] = useState(true)
   const [showHistory, setShowHistory] = useState(true)
 
   const bottomRef = useRef(null)
 
-  // Load connections on mount
+  // Load connections and chats on mount
   useEffect(() => {
     getConnections().then(setConnections).catch(console.error)
-    // Load saved chats
-    const saved = loadAllChats()
-    setAllChats(saved)
-    // Restore active chat
-    const lastActive = localStorage.getItem(ACTIVE_CHAT_KEY)
-    if (lastActive && saved[lastActive]) {
-      const chat = saved[lastActive]
-      setActiveChatId(lastActive)
-      setMessages(chat.messages || [])
-      setSelectedConnId(chat.connId || '')
-      setSelectedSchema(chat.schema || '')
-      setSelectedTable(chat.table || '')
+    
+    // Load chats from Firestore
+    if (user?.uid) {
+      setLoadingChats(true)
+      getUserChats(user.uid)
+        .then((chats) => {
+          setAllChats(chats)
+          // Restore active chat
+          const lastActive = localStorage.getItem(ACTIVE_CHAT_KEY)
+          const activeChat = chats.find(c => c.id === lastActive)
+          if (activeChat) {
+            setActiveChatId(lastActive)
+            setMessages(activeChat.messages || [])
+            setSelectedConnId(activeChat.connId || '')
+            setSelectedSchema(activeChat.schema || '')
+            setSelectedTable(activeChat.table || '')
+          }
+        })
+        .catch(console.error)
+        .finally(() => setLoadingChats(false))
     }
-  }, [])
+  }, [user?.uid])
 
   // Load schemas when connection changes
   useEffect(() => {
@@ -113,38 +112,62 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Save chat to storage
-  const saveChat = useCallback((chatId, chatMessages) => {
-    if (!chatId) return
-    const updated = { ...allChats }
-    const existing = updated[chatId] || {}
+  // Save chat to Firestore
+  const saveChat = useCallback(async (chatId, chatMessages, isNewChat = false) => {
+    if (!chatId || !user?.uid) return
+    
     const firstUserMsg = chatMessages.find(m => m.role === 'user')
-    updated[chatId] = {
-      ...existing,
-      id: chatId,
-      connId: selectedConnId,
-      schema: selectedSchema,
-      table: selectedTable,
-      title: existing.title || firstUserMsg?.content?.slice(0, 50) || 'New Chat',
-      messages: chatMessages,
-      updatedAt: Date.now(),
-      createdAt: existing.createdAt || Date.now(),
+    const title = firstUserMsg?.content?.slice(0, 50) || 'New Chat'
+    
+    try {
+      if (isNewChat) {
+        // Create new chat in Firestore
+        const newId = await createFirestoreChat(user.uid, {
+          connId: selectedConnId,
+          schema: selectedSchema,
+          table: selectedTable,
+          title,
+          messages: chatMessages,
+        })
+        setActiveChatId(newId)
+        localStorage.setItem(ACTIVE_CHAT_KEY, newId)
+        // Update local state
+        setAllChats(prev => [...prev, {
+          id: newId,
+          connId: selectedConnId,
+          schema: selectedSchema,
+          table: selectedTable,
+          title,
+          messages: chatMessages,
+          userId: user.uid,
+        }])
+        return newId
+      } else {
+        // Update existing chat
+        await updateFirestoreChat(chatId, chatMessages, title)
+        // Update local state
+        setAllChats(prev => prev.map(c => 
+          c.id === chatId 
+            ? { ...c, messages: chatMessages, title }
+            : c
+        ))
+      }
+    } catch (err) {
+      console.error('Error saving chat:', err)
     }
-    setAllChats(updated)
-    saveAllChats(updated)
-  }, [allChats, selectedConnId, selectedSchema, selectedTable])
+    return chatId
+  }, [user?.uid, selectedConnId, selectedSchema, selectedTable])
 
   // Create new chat
   const createNewChat = () => {
-    const newId = generateChatId()
-    setActiveChatId(newId)
+    setActiveChatId(null)
     setMessages([])
-    localStorage.setItem(ACTIVE_CHAT_KEY, newId)
+    localStorage.removeItem(ACTIVE_CHAT_KEY)
   }
 
   // Switch to existing chat
   const switchToChat = (chatId) => {
-    const chat = allChats[chatId]
+    const chat = allChats.find(c => c.id === chatId)
     if (chat) {
       setActiveChatId(chatId)
       setMessages(chat.messages || [])
@@ -156,16 +179,18 @@ export default function ChatPage() {
   }
 
   // Delete a chat
-  const deleteChat = (chatId, e) => {
+  const handleDeleteChat = async (chatId, e) => {
     e.stopPropagation()
-    const updated = { ...allChats }
-    delete updated[chatId]
-    setAllChats(updated)
-    saveAllChats(updated)
-    if (activeChatId === chatId) {
-      setActiveChatId(null)
-      setMessages([])
-      localStorage.removeItem(ACTIVE_CHAT_KEY)
+    try {
+      await deleteFirestoreChat(chatId)
+      setAllChats(prev => prev.filter(c => c.id !== chatId))
+      if (activeChatId === chatId) {
+        setActiveChatId(null)
+        setMessages([])
+        localStorage.removeItem(ACTIVE_CHAT_KEY)
+      }
+    } catch (err) {
+      console.error('Error deleting chat:', err)
     }
   }
 
@@ -173,14 +198,6 @@ export default function ChatPage() {
   const handleSend = async () => {
     const text = input.trim()
     if (!text || loading) return
-
-    // Create new chat if none active
-    let chatId = activeChatId
-    if (!chatId) {
-      chatId = generateChatId()
-      setActiveChatId(chatId)
-      localStorage.setItem(ACTIVE_CHAT_KEY, chatId)
-    }
 
     const userMsg = { role: 'user', content: text }
     const updated = [...messages, userMsg]
@@ -198,11 +215,15 @@ export default function ChatPage() {
       const res = await sendChatMessage(updated, context)
       const newMessages = [...updated, { role: 'assistant', content: res.reply }]
       setMessages(newMessages)
-      saveChat(chatId, newMessages)
+      
+      // Save to Firestore - create new if no active chat
+      const isNewChat = !activeChatId
+      await saveChat(activeChatId, newMessages, isNewChat)
     } catch (e) {
       const errorMessages = [...updated, { role: 'assistant', content: `Error: ${e.message}` }]
       setMessages(errorMessages)
-      saveChat(chatId, errorMessages)
+      const isNewChat = !activeChatId
+      await saveChat(activeChatId, errorMessages, isNewChat)
     } finally {
       setLoading(false)
     }
@@ -216,12 +237,16 @@ export default function ChatPage() {
   }
 
   // Get sorted chat list for current table (or all if no table selected)
-  const chatList = Object.values(allChats)
+  const chatList = allChats
     .filter(c => {
       if (!selectedTable) return true
       return c.connId === selectedConnId && c.schema === selectedSchema && c.table === selectedTable
     })
-    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+    .sort((a, b) => {
+      const aTime = a.updatedAt?.toMillis?.() || a.updatedAt || 0
+      const bTime = b.updatedAt?.toMillis?.() || b.updatedAt || 0
+      return bTime - aTime
+    })
 
   const connName = connections.find(c => c.id === selectedConnId)?.name || ''
 
@@ -259,7 +284,7 @@ export default function ChatPage() {
                   {chat.table && <span className="chat-history-table">{chat.table}</span>}
                   <button
                     className="chat-history-delete"
-                    onClick={(e) => deleteChat(chat.id, e)}
+                    onClick={(e) => handleDeleteChat(chat.id, e)}
                     title="Delete chat"
                   >
                     <Trash2 size={12} />
