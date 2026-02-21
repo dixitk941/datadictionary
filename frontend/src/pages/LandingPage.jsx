@@ -1,336 +1,314 @@
-import { useRef, useEffect, useState } from 'react'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Float, MeshDistortMaterial, Environment, Text3D, Center } from '@react-three/drei'
+import { useRef, useEffect, useLayoutEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Database, Sparkles, Shield, MessageCircle, TrendingUp, Zap, ArrowRight, ChevronDown } from 'lucide-react'
-import * as THREE from 'three'
+import { Database, Sparkles, Shield, MessageCircle, TrendingUp, Zap, ArrowRight, ChevronDown, Play } from 'lucide-react'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
-// Animated floating shape that follows scroll
-function ScrollingObject({ scrollProgress, color, startSection, endSection, shape = 'sphere' }) {
-  const meshRef = useRef()
-  const { viewport } = useThree()
-  
-  useFrame(() => {
-    if (!meshRef.current) return
-    
-    const sectionProgress = Math.max(0, Math.min(1, 
-      (scrollProgress - startSection) / (endSection - startSection)
-    ))
-    
-    // Move from right side of one section to left side of next
-    const startX = viewport.width * 0.35
-    const endX = -viewport.width * 0.35
-    const x = startX + (endX - startX) * sectionProgress
-    
-    // Vertical movement following scroll
-    const startY = (1 - startSection * 2) * viewport.height * 0.3
-    const endY = (1 - endSection * 2) * viewport.height * 0.3
-    const y = startY + (endY - startY) * sectionProgress
-    
-    meshRef.current.position.x = x
-    meshRef.current.position.y = y
-    meshRef.current.position.z = -2 + sectionProgress * 4
-    
-    // Rotation based on scroll
-    meshRef.current.rotation.x = sectionProgress * Math.PI * 2
-    meshRef.current.rotation.y = sectionProgress * Math.PI * 3
-    
-    // Scale pulse
-    const scale = 1 + Math.sin(sectionProgress * Math.PI) * 0.3
-    meshRef.current.scale.setScalar(scale)
-  })
-  
-  const geometry = shape === 'box' 
-    ? <boxGeometry args={[1, 1, 1]} />
-    : shape === 'torus'
-    ? <torusGeometry args={[0.5, 0.2, 16, 32]} />
-    : shape === 'icosahedron'
-    ? <icosahedronGeometry args={[0.6, 0]} />
-    : <sphereGeometry args={[0.5, 32, 32]} />
-  
-  return (
-    <mesh ref={meshRef}>
-      {geometry}
-      <MeshDistortMaterial
-        color={color}
-        envMapIntensity={0.4}
-        clearcoat={1}
-        clearcoatRoughness={0}
-        metalness={0.1}
-        roughness={0.2}
-        distort={0.4}
-        speed={2}
-      />
-    </mesh>
-  )
-}
+gsap.registerPlugin(ScrollTrigger)
 
-// Background particles
-function Particles({ count = 200 }) {
-  const pointsRef = useRef()
-  
-  const positions = new Float32Array(count * 3)
-  for (let i = 0; i < count; i++) {
-    positions[i * 3] = (Math.random() - 0.5) * 20
-    positions[i * 3 + 1] = (Math.random() - 0.5) * 20
-    positions[i * 3 + 2] = (Math.random() - 0.5) * 10
-  }
-  
-  useFrame((state) => {
-    if (pointsRef.current) {
-      pointsRef.current.rotation.y = state.clock.elapsedTime * 0.02
-      pointsRef.current.rotation.x = state.clock.elapsedTime * 0.01
-    }
-  })
-  
-  return (
-    <points ref={pointsRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={count}
-          array={positions}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <pointsMaterial
-        size={0.03}
-        color="#10a37f"
-        transparent
-        opacity={0.6}
-        sizeAttenuation
-      />
-    </points>
-  )
-}
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   GSAP Cinematic Landing — cinematography-style scroll
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-// Main 3D Scene
-function Scene({ scrollProgress }) {
-  return (
-    <>
-      <ambientLight intensity={0.3} />
-      <directionalLight position={[5, 5, 5]} intensity={1} />
-      <pointLight position={[-5, 5, 5]} intensity={0.5} color="#10a37f" />
-      
-      <Particles />
-      
-      {/* Hero section object - moves to Features */}
-      <ScrollingObject
-        scrollProgress={scrollProgress}
-        color="#10a37f"
-        startSection={0}
-        endSection={0.25}
-        shape="sphere"
-      />
-      
-      {/* Features to Quality section */}
-      <ScrollingObject
-        scrollProgress={scrollProgress}
-        color="#1e90ff"
-        startSection={0.25}
-        endSection={0.5}
-        shape="box"
-      />
-      
-      {/* Quality to AI section */}
-      <ScrollingObject
-        scrollProgress={scrollProgress}
-        color="#8b5cf6"
-        startSection={0.5}
-        endSection={0.75}
-        shape="torus"
-      />
-      
-      {/* AI to CTA section */}
-      <ScrollingObject
-        scrollProgress={scrollProgress}
-        color="#f59e0b"
-        startSection={0.75}
-        endSection={1}
-        shape="icosahedron"
-      />
-      
-      <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
-        <mesh position={[0, 0, -5]}>
-          <dodecahedronGeometry args={[1.5, 0]} />
-          <meshStandardMaterial
-            color="#10a37f"
-            wireframe
-            transparent
-            opacity={0.3}
-          />
-        </mesh>
-      </Float>
-      
-      <Environment preset="city" />
-    </>
-  )
-}
+// Animated counter (GSAP-powered)
+function Counter({ end, suffix = '' }) {
+  const ref = useRef()
+  const numRef = useRef({ val: 0 })
 
-// Feature card component
-function FeatureCard({ icon: Icon, title, description, delay = 0 }) {
-  return (
-    <div className="landing-feature-card" style={{ animationDelay: `${delay}ms` }}>
-      <div className="landing-feature-icon">
-        <Icon size={28} />
-      </div>
-      <h3>{title}</h3>
-      <p>{description}</p>
-    </div>
-  )
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const st = ScrollTrigger.create({
+      trigger: el,
+      start: 'top 85%',
+      once: true,
+      onEnter: () => {
+        gsap.to(numRef.current, {
+          val: end,
+          duration: 1.8,
+          ease: 'power3.out',
+          onUpdate: () => {
+            el.textContent = Math.round(numRef.current.val) + suffix
+          },
+        })
+      },
+    })
+    return () => st.kill()
+  }, [end, suffix])
+
+  return <span ref={ref} className="cin-counter">0{suffix}</span>
 }
 
 export default function LandingPage() {
   const navigate = useNavigate()
-  const containerRef = useRef()
-  const [scrollProgress, setScrollProgress] = useState(0)
-  
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!containerRef.current) return
-      const scrollTop = window.scrollY
-      const docHeight = containerRef.current.scrollHeight - window.innerHeight
-      const progress = Math.min(1, Math.max(0, scrollTop / docHeight))
-      setScrollProgress(progress)
-    }
-    
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
+  const mainRef = useRef()
+
+  /* ── Master GSAP timeline on mount ── */
+  useLayoutEffect(() => {
+    const ctx = gsap.context(() => {
+
+      /* HERO intro — staggered entrance like a film title sequence */
+      const heroTl = gsap.timeline({ defaults: { ease: 'power3.out' } })
+      heroTl
+        .from('.cin-hero .landing-nav', { y: -60, opacity: 0, duration: 0.8 })
+        .from('.landing-hero-badge', { y: 30, opacity: 0, duration: 0.7 }, '-=0.3')
+        .from('.cin-hero-title', { y: 50, opacity: 0, duration: 0.9, scale: 0.97 }, '-=0.4')
+        .from('.landing-hero-subtitle', { y: 30, opacity: 0, duration: 0.7 }, '-=0.4')
+        .from('.landing-hero-actions', { y: 30, opacity: 0, duration: 0.7 }, '-=0.3')
+        .from('.cin-stats', { y: 30, opacity: 0, duration: 0.7 }, '-=0.2')
+        .from('.landing-scroll-indicator', { opacity: 0, duration: 0.6 }, '-=0.1')
+
+      /* Background glows — slow parallax float */
+      gsap.to('.cin-bg-glow-1', {
+        y: -120, x: 60,
+        scrollTrigger: { trigger: '.landing-page', start: 'top top', end: 'bottom bottom', scrub: 1 },
+      })
+      gsap.to('.cin-bg-glow-2', {
+        y: -80, x: -40,
+        scrollTrigger: { trigger: '.landing-page', start: 'top top', end: 'bottom bottom', scrub: 1.5 },
+      })
+      gsap.to('.cin-bg-glow-3', {
+        y: -160, x: 30,
+        scrollTrigger: { trigger: '.landing-page', start: 'top top', end: 'bottom bottom', scrub: 2 },
+      })
+
+      /* PRODUCT PREVIEW — cinematic scale-up from distance */
+      gsap.from('.cin-preview-window', {
+        scale: 0.85,
+        opacity: 0,
+        y: 80,
+        rotateX: 8,
+        duration: 1.2,
+        ease: 'power2.out',
+        scrollTrigger: { trigger: '.cin-preview-section', start: 'top 75%', toggleActions: 'play none none none' },
+      })
+      /* stagger preview rows like data loading in */
+      gsap.from('.cin-preview-row', {
+        x: -20, opacity: 0,
+        stagger: 0.12,
+        duration: 0.5,
+        ease: 'power2.out',
+        scrollTrigger: { trigger: '.cin-preview-main', start: 'top 80%' },
+      })
+      gsap.from('.cin-preview-ai', {
+        y: 15, opacity: 0,
+        duration: 0.6,
+        delay: 0.4,
+        ease: 'power2.out',
+        scrollTrigger: { trigger: '.cin-preview-main', start: 'top 80%' },
+      })
+
+      /* FEATURES — cards fly in with stagger */
+      gsap.from('.landing-section-header', {
+        y: 40, opacity: 0, duration: 0.8, ease: 'power3.out',
+        scrollTrigger: { trigger: '.landing-features', start: 'top 80%' },
+      })
+      gsap.from('.landing-feature-card', {
+        y: 60, opacity: 0, scale: 0.95,
+        stagger: 0.1,
+        duration: 0.7,
+        ease: 'back.out(1.2)',
+        scrollTrigger: { trigger: '.landing-features-grid', start: 'top 82%' },
+      })
+
+      /* HOW IT WORKS — steps slide in from left sequentially */
+      gsap.from('.cin-step', {
+        x: -60, opacity: 0, scale: 0.9,
+        stagger: 0.2,
+        duration: 0.8,
+        ease: 'power3.out',
+        scrollTrigger: { trigger: '.cin-steps', start: 'top 80%' },
+      })
+      /* connecting lines grow */
+      gsap.from('.cin-step-line', {
+        scaleX: 0, transformOrigin: 'left center',
+        stagger: 0.2,
+        duration: 0.6,
+        delay: 0.3,
+        ease: 'power2.inOut',
+        scrollTrigger: { trigger: '.cin-steps', start: 'top 80%' },
+      })
+
+      /* AI SECTION — split reveal: text from left, demo from right */
+      gsap.from('.landing-ai-text', {
+        x: -60, opacity: 0, duration: 0.9, ease: 'power3.out',
+        scrollTrigger: { trigger: '.landing-ai-section', start: 'top 75%' },
+      })
+      gsap.from('.landing-ai-demo', {
+        x: 60, opacity: 0, duration: 0.9, ease: 'power3.out',
+        scrollTrigger: { trigger: '.landing-ai-section', start: 'top 75%' },
+      })
+      /* chat messages type in */
+      gsap.from('.chat-preview-message', {
+        y: 20, opacity: 0,
+        stagger: 0.3,
+        duration: 0.6,
+        ease: 'power2.out',
+        scrollTrigger: { trigger: '.landing-chat-preview', start: 'top 85%' },
+      })
+
+      /* CTA — dramatic scale entrance */
+      gsap.from('.landing-cta-content', {
+        scale: 0.9, opacity: 0, y: 40,
+        duration: 1,
+        ease: 'power3.out',
+        scrollTrigger: { trigger: '.landing-cta', start: 'top 80%' },
+      })
+
+      /* FOOTER slide up */
+      gsap.from('.landing-footer-content', {
+        y: 30, opacity: 0, duration: 0.6,
+        scrollTrigger: { trigger: '.landing-footer', start: 'top 95%' },
+      })
+
+    }, mainRef)
+
+    return () => ctx.revert()
   }, [])
-  
+
   return (
-    <div className="landing-page" ref={containerRef}>
-      {/* Fixed Canvas Background */}
-      <div className="landing-canvas-container">
-        <Canvas camera={{ position: [0, 0, 5], fov: 60 }}>
-          <Scene scrollProgress={scrollProgress} />
-        </Canvas>
+    <div className="landing-page cin-page" ref={mainRef}>
+      {/* Ambient background */}
+      <div className="cin-bg">
+        <div className="cin-bg-glow cin-bg-glow-1" />
+        <div className="cin-bg-glow cin-bg-glow-2" />
+        <div className="cin-bg-glow cin-bg-glow-3" />
+        <div className="cin-bg-grid" />
       </div>
-      
-      {/* Navigation */}
-      <nav className="landing-nav">
-        <div className="landing-nav-logo">
-          <Sparkles size={24} />
-          DataDict AI
-        </div>
-        <div className="landing-nav-actions">
-          <button className="btn btn-ghost" onClick={() => navigate('/login')}>
-            Sign In
-          </button>
-          <button className="btn btn-primary" onClick={() => navigate('/signup')}>
-            Get Started
-          </button>
-        </div>
-      </nav>
-      
-      {/* Hero Section */}
-      <section className="landing-section landing-hero">
+
+      {/* ── SCENE 1: Hero ─────────────────────── */}
+      <section className="landing-section landing-hero cin-hero">
+        {/* Nav inside hero so GSAP can animate it with the hero TL */}
+        <nav className="landing-nav">
+          <div className="landing-nav-logo"><Sparkles size={24} /> DataDict AI</div>
+          <div className="landing-nav-actions">
+            <button className="btn btn-ghost" onClick={() => navigate('/login')}>Sign In</button>
+            <button className="btn btn-primary" onClick={() => navigate('/signup')}>Get Started</button>
+          </div>
+        </nav>
+
         <div className="landing-hero-content">
-          <h1>
-            <span className="text-gradient">AI-Powered</span>
-            <br />
-            Data Dictionary
+          <div className="landing-hero-badge">
+            <Sparkles size={14} />
+            AI-Powered Data Documentation
+          </div>
+          <h1 className="cin-hero-title">
+            <span className="text-gradient">Understand</span> your databases<br/>in minutes
           </h1>
           <p className="landing-hero-subtitle">
             Connect to any database, extract metadata automatically, analyze data quality,
-            and generate business-friendly documentation with AI assistance.
+            and generate business-friendly documentation — all with AI assistance.
           </p>
           <div className="landing-hero-actions">
-            <button className="btn btn-primary btn-lg" onClick={() => navigate('/signup')}>
-              Start Free <ArrowRight size={18} />
+            <button className="btn btn-primary btn-lg cin-btn-glow" onClick={() => navigate('/signup')}>
+              Get Started Free <ArrowRight size={18} />
             </button>
             <button className="btn btn-outline btn-lg" onClick={() => navigate('/login')}>
-              Sign In
+              <Play size={16} /> Watch Demo
             </button>
+          </div>
+
+          {/* Stats */}
+          <div className="cin-stats">
+            <div className="cin-stat">
+              <Counter end={50} suffix="+" /><span>Databases Supported</span>
+            </div>
+            <div className="cin-stat-divider" />
+            <div className="cin-stat">
+              <Counter end={10} suffix="x" /><span>Faster Documentation</span>
+            </div>
+            <div className="cin-stat-divider" />
+            <div className="cin-stat">
+              <Counter end={99} suffix="%" /><span>Accuracy Rate</span>
+            </div>
           </div>
         </div>
         <div className="landing-scroll-indicator">
-          <ChevronDown size={32} />
-          <span>Scroll to explore</span>
+          <ChevronDown size={24} /><span>Scroll to explore</span>
         </div>
       </section>
-      
-      {/* Features Section */}
+
+      {/* ── SCENE 2: Product Preview ──────────── */}
+      <section className="landing-section cin-preview-section">
+        <div className="cin-preview">
+          <div className="cin-preview-window">
+            <div className="cin-preview-titlebar">
+              <div className="cin-dot red" /><div className="cin-dot yellow" /><div className="cin-dot green" />
+              <span>DataDict AI — Dashboard</span>
+            </div>
+            <div className="cin-preview-body">
+              <div className="cin-preview-sidebar">
+                <div className="cin-preview-nav-item active"><Database size={14} /> Connections</div>
+                <div className="cin-preview-nav-item"><Shield size={14} /> Quality</div>
+                <div className="cin-preview-nav-item"><MessageCircle size={14} /> AI Chat</div>
+              </div>
+              <div className="cin-preview-main">
+                <div className="cin-preview-card">
+                  <div className="cin-preview-card-header">customers</div>
+                  <div className="cin-preview-row"><span>id</span><span className="cin-tag">PRIMARY KEY</span></div>
+                  <div className="cin-preview-row"><span>email</span><span className="cin-tag">VARCHAR</span></div>
+                  <div className="cin-preview-row"><span>created_at</span><span className="cin-tag">TIMESTAMP</span></div>
+                </div>
+                <div className="cin-preview-ai">
+                  <Sparkles size={12} /> AI: "The customers table stores user profiles with 98% completeness"
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── SCENE 3: Features ─────────────────── */}
       <section className="landing-section landing-features">
         <div className="landing-section-header">
           <h2>Powerful Features</h2>
           <p>Everything you need to understand and document your data</p>
         </div>
         <div className="landing-features-grid">
-          <FeatureCard
-            icon={Database}
-            title="Multi-Database Support"
-            description="Connect to PostgreSQL, SQL Server, Snowflake, SQLite and more. One platform for all your databases."
-            delay={0}
-          />
-          <FeatureCard
-            icon={Zap}
-            title="Auto Schema Extraction"
-            description="Automatically extract tables, columns, relationships, and constraints from your database."
-            delay={100}
-          />
-          <FeatureCard
-            icon={Shield}
-            title="Data Quality Analysis"
-            description="Identify null values, duplicates, data patterns, and anomalies across your entire database."
-            delay={200}
-          />
-          <FeatureCard
-            icon={Sparkles}
-            title="AI Documentation"
-            description="Generate human-readable descriptions for tables and columns using advanced AI models."
-            delay={300}
-          />
-          <FeatureCard
-            icon={MessageCircle}
-            title="Interactive Chat"
-            description="Ask questions about your data in natural language. Get instant answers powered by Mistral AI."
-            delay={400}
-          />
-          <FeatureCard
-            icon={TrendingUp}
-            title="Quality Metrics"
-            description="Track completeness, consistency, and accuracy scores for every table in your database."
-            delay={500}
-          />
+          {[
+            { icon: Database,       title: 'Multi-Database Support', desc: 'Connect to PostgreSQL, SQL Server, Snowflake, SQLite and more. One platform for all your databases.' },
+            { icon: Zap,            title: 'Auto Schema Extraction', desc: 'Automatically extract tables, columns, relationships, and constraints from your database.' },
+            { icon: Shield,         title: 'Data Quality Analysis',  desc: 'Identify null values, duplicates, data patterns, and anomalies across your entire database.' },
+            { icon: Sparkles,       title: 'AI Documentation',       desc: 'Generate human-readable descriptions for tables and columns using advanced AI models.' },
+            { icon: MessageCircle,  title: 'Interactive Chat',       desc: 'Ask questions about your data in natural language. Get instant answers powered by Mistral AI.' },
+            { icon: TrendingUp,     title: 'Quality Metrics',        desc: 'Track completeness, consistency, and accuracy scores for every table in your database.' },
+          ].map(({ icon: Icon, title, desc }) => (
+            <div className="landing-feature-card" key={title}>
+              <div className="landing-feature-icon"><Icon size={28} /></div>
+              <h3>{title}</h3>
+              <p>{desc}</p>
+            </div>
+          ))}
         </div>
       </section>
-      
-      {/* How It Works Section */}
+
+      {/* ── SCENE 4: How It Works ─────────────── */}
       <section className="landing-section landing-how-it-works">
         <div className="landing-section-header">
           <h2>How It Works</h2>
           <p>Get started in three simple steps</p>
         </div>
-        <div className="landing-steps">
-          <div className="landing-step">
-            <div className="landing-step-number">1</div>
-            <h3>Connect Your Database</h3>
-            <p>Add your database credentials securely. We support all major databases.</p>
-          </div>
-          <div className="landing-step-arrow">→</div>
-          <div className="landing-step">
-            <div className="landing-step-number">2</div>
-            <h3>Analyze & Extract</h3>
-            <p>We automatically scan your schema and analyze data quality metrics.</p>
-          </div>
-          <div className="landing-step-arrow">→</div>
-          <div className="landing-step">
-            <div className="landing-step-number">3</div>
-            <h3>Chat & Document</h3>
-            <p>Ask questions, generate documentation, and share insights with your team.</p>
-          </div>
+        <div className="cin-steps">
+          {[
+            { num: '1', h: 'Connect Your Database', p: 'Add your database credentials securely. We support all major databases.' },
+            { num: '2', h: 'Analyze & Extract',     p: 'We automatically scan your schema and analyze data quality metrics.' },
+            { num: '3', h: 'Chat & Document',       p: 'Ask questions, generate documentation, and share insights with your team.' },
+          ].map(({ num, h, p: desc }) => (
+            <div className="cin-step" key={num}>
+              <div className="cin-step-num">{num}</div>
+              <div className="cin-step-line" />
+              <h3>{h}</h3>
+              <p>{desc}</p>
+            </div>
+          ))}
         </div>
       </section>
-      
-      {/* AI Section */}
+
+      {/* ── SCENE 5: AI Section ───────────────── */}
       <section className="landing-section landing-ai-section">
         <div className="landing-ai-content">
           <div className="landing-ai-text">
-            <h2>
-              <Sparkles size={32} style={{ color: 'var(--primary-light)' }} />
-              Powered by AI
-            </h2>
+            <h2><Sparkles size={32} style={{ color: '#10a37f' }} /> Powered by AI</h2>
             <p>
               Our platform uses Mistral AI to understand your data context and provide
               intelligent responses. Ask anything about your database schemas, relationships,
@@ -345,35 +323,30 @@ export default function LandingPage() {
           </div>
           <div className="landing-ai-demo">
             <div className="landing-chat-preview">
-              <div className="chat-preview-message user">
-                What columns store customer contact info?
-              </div>
+              <div className="chat-preview-message user">What columns store customer contact info?</div>
               <div className="chat-preview-message assistant">
-                Based on the schema, customer contact information is stored in the <strong>customers</strong> table with columns: email, phone, address_line1, city, state, and postal_code.
+                Based on the schema, customer contact information is stored in the <strong>customers</strong> table
+                with columns: email, phone, address_line1, city, state, and postal_code.
               </div>
             </div>
           </div>
         </div>
       </section>
-      
-      {/* CTA Section */}
+
+      {/* ── SCENE 6: CTA ──────────────────────── */}
       <section className="landing-section landing-cta">
         <div className="landing-cta-content">
           <h2>Ready to understand your data?</h2>
           <p>Start using DataDict AI today — no credit card required.</p>
-          <button className="btn btn-primary btn-lg" onClick={() => navigate('/signup')}>
+          <button className="btn btn-primary btn-lg cin-btn-glow" onClick={() => navigate('/signup')}>
             Get Started Free <ArrowRight size={18} />
           </button>
         </div>
       </section>
-      
-      {/* Footer */}
+
       <footer className="landing-footer">
         <div className="landing-footer-content">
-          <div className="landing-footer-logo">
-            <Sparkles size={20} />
-            DataDict AI
-          </div>
+          <div className="landing-footer-logo"><Sparkles size={20} /> DataDict AI</div>
           <p>© 2026 DataDict AI. Built with ❤️ for data teams.</p>
         </div>
       </footer>

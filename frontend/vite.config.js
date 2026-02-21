@@ -12,4 +12,15 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+          recharts: ['recharts'],
+          gsap: ['gsap', 'gsap/ScrollTrigger'],
+        },
+      },
+    },
+  },
 })

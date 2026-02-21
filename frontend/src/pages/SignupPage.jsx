@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, User, Sparkles, ArrowRight, AlertCircle, Zap, TrendingUp, BookOpen } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import AuthScene from '../components/AuthScene'
+import gsap from 'gsap'
 
 // Typewriter component
 function Typewriter({ texts, speed = 80, deleteSpeed = 40, pauseDuration = 2000 }) {
@@ -100,11 +100,27 @@ export default function SignupPage() {
     }
   }
   
+  const pageRef = useRef()
+
+  useLayoutEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.from('.auth-info-panel', { x: -60, opacity: 0, duration: 0.9, ease: 'power3.out' })
+      gsap.from('.auth-brand', { y: -20, opacity: 0, duration: 0.7, delay: 0.3, ease: 'power2.out' })
+      gsap.from('.auth-welcome h1', { y: 30, opacity: 0, duration: 0.8, delay: 0.5, ease: 'power3.out' })
+      gsap.from('.auth-tagline', { y: 20, opacity: 0, duration: 0.6, delay: 0.7, ease: 'power2.out' })
+      gsap.from('.auth-feature', { x: -20, opacity: 0, stagger: 0.1, duration: 0.5, delay: 0.9, ease: 'power2.out' })
+      gsap.from('.auth-form-panel', { x: 60, opacity: 0, duration: 0.9, delay: 0.2, ease: 'power3.out' })
+      gsap.from('.auth-form-header', { y: 20, opacity: 0, duration: 0.6, delay: 0.6, ease: 'power2.out' })
+      gsap.from('.form-group', { y: 15, opacity: 0, stagger: 0.1, duration: 0.5, delay: 0.8, ease: 'power2.out' })
+    }, pageRef)
+    return () => ctx.revert()
+  }, [])
+
   return (
-    <div className="auth-split-page">
+    <div className="auth-split-page" ref={pageRef}>
       {/* Left Side - Info Panel */}
       <div className="auth-info-panel">
-        <AuthScene />
+        <div className="auth-bg-anim"><div className="auth-bg-orb auth-bg-orb-1"></div><div className="auth-bg-orb auth-bg-orb-2"></div><div className="auth-bg-orb auth-bg-orb-3"></div></div>
         <div className="auth-info-content">
           <Link to="/" className="auth-brand">
             <div className="auth-brand-icon">

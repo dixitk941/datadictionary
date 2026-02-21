@@ -384,15 +384,22 @@ export default function ChatPage() {
         {/* Messages */}
         <div className="chat-messages">
           {messages.length === 0 && (
-            <div className="empty-state" style={{ margin: 'auto' }}>
-              <Sparkles size={44} style={{ margin: '0 auto 16px', opacity: 0.15 }} />
-              <h3>Ask anything about your data</h3>
-              <p className="text-muted text-sm" style={{ maxWidth: 420, margin: '8px auto 0' }}>
-                {selectedTable
-                  ? `Ask questions specifically about the "${selectedTable}" table.`
-                  : 'Select a connection and table above to chat about specific data, or ask general questions about your databases.'}
+            <div className="chat-welcome" style={{ margin: 'auto' }}>
+              <div className="chat-welcome-icon">
+                <Sparkles size={32} />
+              </div>
+              <h2 className="chat-welcome-greeting">Namaste! 🙏</h2>
+              <p className="chat-welcome-sub">
+                {user?.displayName
+                  ? `Welcome, ${user.displayName.split(' ')[0]}! I'm your AI data assistant.`
+                  : "I'm your AI data assistant — here to help you explore and understand your data."}
               </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 20 }}>
+              <p className="text-muted text-sm" style={{ maxWidth: 460, margin: '4px auto 0' }}>
+                {selectedTable
+                  ? `You're connected to the "${selectedTable}" table. Ask me anything about its structure, columns, or data.`
+                  : 'Select a connection and table above to get started, or ask me any general question about your databases.'}
+              </p>
+              <div className="chat-welcome-suggestions">
                 {(selectedTable ? [
                   `What columns are in ${selectedTable}?`,
                   `Describe the primary key`,

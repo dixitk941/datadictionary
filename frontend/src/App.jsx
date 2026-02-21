@@ -1,16 +1,30 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import { Database, LayoutDashboard, Table2, ShieldCheck, Sparkles, MessageCircle, LogOut, User } from 'lucide-react'
 import { useAuth } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
-import DashboardPage from './pages/DashboardPage'
-import ConnectionsPage from './pages/ConnectionsPage'
-import TablesPage from './pages/TablesPage'
-import TableDetailPage from './pages/TableDetailPage'
-import QualityPage from './pages/QualityPage'
-import ChatPage from './pages/ChatPage'
-import LandingPage from './pages/LandingPage'
-import LoginPage from './pages/LoginPage'
-import SignupPage from './pages/SignupPage'
+
+// Lazy-load pages for faster initial load
+const LandingPage = lazy(() => import('./pages/LandingPage'))
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const SignupPage = lazy(() => import('./pages/SignupPage'))
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const ConnectionsPage = lazy(() => import('./pages/ConnectionsPage'))
+const TablesPage = lazy(() => import('./pages/TablesPage'))
+const TableDetailPage = lazy(() => import('./pages/TableDetailPage'))
+const QualityPage = lazy(() => import('./pages/QualityPage'))
+const ChatPage = lazy(() => import('./pages/ChatPage'))
+
+function PageLoader() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#000' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+        <Sparkles size={28} style={{ color: '#10a37f', animation: 'pulse 1.5s infinite' }} />
+        <span style={{ color: '#888', fontSize: '0.9rem' }}>Loading...</span>
+      </div>
+    </div>
+  )
+}
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -70,14 +84,16 @@ function AppLayout() {
       </aside>
 
       <main className="main-content">
-        <Routes>
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/connections" element={<ConnectionsPage />} />
-          <Route path="/tables" element={<TablesPage />} />
-          <Route path="/tables/:connId/:table" element={<TableDetailPage />} />
-          <Route path="/quality" element={<QualityPage />} />
-          <Route path="/chat" element={<ChatPage />} />
-        </Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/connections" element={<ConnectionsPage />} />
+            <Route path="/tables" element={<TablesPage />} />
+            <Route path="/tables/:connId/:table" element={<TableDetailPage />} />
+            <Route path="/quality" element={<QualityPage />} />
+            <Route path="/chat" element={<ChatPage />} />
+          </Routes>
+        </Suspense>
       </main>
     </div>
   )
@@ -93,17 +109,21 @@ export default function App() {
 
   if (isPublicPath) {
     return (
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-      </Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+        </Routes>
+      </Suspense>
     )
   }
 
   return (
-    <ProtectedRoute>
-      <AppLayout />
-    </ProtectedRoute>
+    <Suspense fallback={<PageLoader />}>
+      <ProtectedRoute>
+        <AppLayout />
+      </ProtectedRoute>
+    </Suspense>
   )
 }
