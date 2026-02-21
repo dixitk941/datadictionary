@@ -1,17 +1,16 @@
-import { useRef, useEffect, useLayoutEffect, useState } from 'react'
+import { useRef, useEffect, useLayoutEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Database, Sparkles, Shield, MessageCircle, Lock, Zap, ArrowRight, ChevronDown, Play } from 'lucide-react'
+import {
+  Database, Sparkles, Shield, MessageCircle, Lock, Zap,
+  ArrowRight, ArrowUpRight, ChevronDown,
+  BarChart3, Layers, Brain, Workflow, Table2
+} from 'lucide-react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import HeroIllustration from '../components/HeroIllustration'
 
 gsap.registerPlugin(ScrollTrigger)
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   GSAP Cinematic Landing — cinematography-style scroll
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-
-// Animated counter (GSAP-powered)
+/* ── Animated counter ── */
 function Counter({ end, suffix = '' }) {
   const ref = useRef()
   const numRef = useRef({ val: 0 })
@@ -37,280 +36,371 @@ function Counter({ end, suffix = '' }) {
     return () => st.kill()
   }, [end, suffix])
 
-  return <span ref={ref} className="cin-counter">0{suffix}</span>
+  return <span ref={ref} className="tg-counter">0{suffix}</span>
 }
 
 export default function LandingPage() {
   const navigate = useNavigate()
   const mainRef = useRef()
 
-  /* ── Master GSAP timeline on mount ── */
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
+      /* NAV — slide down + fade in from above */
+      gsap.from('.tg-nav', { y: -60, opacity: 0, duration: 0.9, ease: 'power3.out', delay: 0.1 })
 
-      /* HERO intro — staggered entrance like a film title sequence */
+      /* HERO CARD — cinematic entrance ── */
       const heroTl = gsap.timeline({ defaults: { ease: 'power3.out' } })
       heroTl
-        .from('.cin-hero .landing-nav', { y: -60, opacity: 0, duration: 0.8 })
-        .from('.landing-hero-badge', { y: 30, opacity: 0, duration: 0.7 }, '-=0.3')
-        .from('.cin-hero-title', { y: 50, opacity: 0, duration: 0.9, scale: 0.97 }, '-=0.4')
-        .from('.landing-hero-subtitle', { y: 30, opacity: 0, duration: 0.7 }, '-=0.4')
-        .from('.landing-hero-actions', { y: 30, opacity: 0, duration: 0.7 }, '-=0.3')
-        .from('.cin-stats', { y: 30, opacity: 0, duration: 0.7 }, '-=0.2')
-        .from('.hero-illustration', { x: 80, opacity: 0, scale: 0.9, duration: 1.1, ease: 'power2.out' }, '-=1.2')
-        .from('.landing-scroll-indicator', { opacity: 0, duration: 0.6 }, '-=0.1')
+        .from('.tg-hero-card', {
+          y: 80, opacity: 0, scale: 0.92, rotateX: 6,
+          duration: 1.3, ease: 'power4.out',
+        })
+        .from('.tg-hero-grid', { opacity: 0, duration: 0.8 }, '-=0.6')
+        .from('.tg-hero-title', {
+          y: 50, opacity: 0, duration: 0.9,
+          ease: 'power3.out',
+        }, '-=0.5')
+        .from('.tg-hero-sub', {
+          y: 35, opacity: 0, duration: 0.8,
+          ease: 'power2.out',
+        }, '-=0.4')
+        .from('.tg-hero-actions', {
+          y: 25, opacity: 0, scale: 0.95, duration: 0.7,
+        }, '-=0.3')
 
-      /* Background glows — slow parallax float */
-      gsap.to('.cin-bg-glow-1', {
-        y: -120, x: 60,
-        scrollTrigger: { trigger: '.landing-page', start: 'top top', end: 'bottom bottom', scrub: 1 },
-      })
-      gsap.to('.cin-bg-glow-2', {
-        y: -80, x: -40,
-        scrollTrigger: { trigger: '.landing-page', start: 'top top', end: 'bottom bottom', scrub: 1.5 },
-      })
-      gsap.to('.cin-bg-glow-3', {
-        y: -160, x: 30,
-        scrollTrigger: { trigger: '.landing-page', start: 'top top', end: 'bottom bottom', scrub: 2 },
+      /* HERO SHAPES — stagger pop-in with spring */
+      gsap.from('.tg-shape', {
+        scale: 0, opacity: 0, rotation: -30,
+        stagger: { each: 0.12, from: 'random' },
+        duration: 0.9,
+        ease: 'back.out(2)',
+        delay: 0.6,
       })
 
-      /* PRODUCT PREVIEW — cinematic scale-up from distance */
-      const previewTl = gsap.timeline({
-        scrollTrigger: { trigger: '.cin-preview-section', start: 'top 80%', once: true },
+      /* HERO SHAPES — infinite floating drift */
+      document.querySelectorAll('.tg-shape').forEach((shape, i) => {
+        const dir = i % 2 === 0 ? 1 : -1
+        gsap.to(shape, {
+          y: `+=${dir * (15 + i * 5)}`,
+          x: `+=${-dir * (10 + i * 3)}`,
+          rotation: `+=${dir * 8}`,
+          duration: 4 + i * 0.7,
+          ease: 'sine.inOut',
+          repeat: -1,
+          yoyo: true,
+        })
       })
-      previewTl.fromTo('.cin-preview-window',
-        { scale: 0.85, opacity: 0, y: 80, rotateX: 8 },
-        { scale: 1, opacity: 1, y: 0, rotateX: 0, duration: 1.2, ease: 'power2.out' },
-      )
-      previewTl.fromTo('.cin-preview-row',
-        { x: -20, opacity: 0 },
-        { x: 0, opacity: 1, stagger: 0.12, duration: 0.5, ease: 'power2.out' },
-        '-=0.6'
-      )
-      previewTl.fromTo('.cin-preview-ai',
-        { y: 15, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out' },
-        '-=0.2'
-      )
 
-      /* FEATURES — header + cards fly in with stagger */
-      const featHeaderTl = gsap.timeline({
-        scrollTrigger: { trigger: '.landing-features', start: 'top 85%', once: true },
+      /* HERO GRID — subtle parallax on scroll */
+      gsap.to('.tg-hero-grid', {
+        backgroundPosition: '25px 25px',
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '.tg-hero',
+          start: 'top top',
+          end: 'bottom top',
+          scrub: 1.5,
+        },
       })
-      featHeaderTl.fromTo('.landing-features .landing-section-header',
-        { y: 40, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' },
-      )
 
-      const featCardsTl = gsap.timeline({
-        scrollTrigger: { trigger: '.landing-features-grid', start: 'top 90%', once: true },
+      /* SCROLL HINT — pulse + fade as you scroll */
+      gsap.to('.tg-scroll-hint', {
+        opacity: 0,
+        y: 20,
+        scrollTrigger: {
+          trigger: '.tg-hero',
+          start: '80% top',
+          end: 'bottom top',
+          scrub: true,
+        },
       })
-      featCardsTl.fromTo('.landing-feature-card',
-        { y: 50, opacity: 0, scale: 0.95 },
-        { y: 0, opacity: 1, scale: 1, stagger: 0.1, duration: 0.7, ease: 'back.out(1.2)' },
-      )
 
-      /* HOW IT WORKS — header + steps */
-      const howHeaderTl = gsap.timeline({
-        scrollTrigger: { trigger: '.landing-how-it-works', start: 'top 85%', once: true },
+      /* STATS */
+      const statsTl = gsap.timeline({
+        scrollTrigger: { trigger: '.tg-stats', start: 'top 85%', once: true },
       })
-      howHeaderTl.fromTo('.landing-how-it-works .landing-section-header',
-        { y: 40, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' },
-      )
-      /* Steps */
+      statsTl
+        .from('.tg-stats-heading', { y: 40, opacity: 0, duration: 0.8 })
+        .from('.tg-stat-card', { y: 50, opacity: 0, scale: 0.95, stagger: 0.15, duration: 0.7 }, '-=0.4')
+
+      /* FEATURES (alternating rows) */
+      document.querySelectorAll('.tg-feature-row').forEach((row) => {
+        gsap.from(row.querySelectorAll('.tg-feat-text, .tg-feat-visual'), {
+          y: 50, opacity: 0, stagger: 0.15, duration: 0.8, ease: 'power3.out',
+          scrollTrigger: { trigger: row, start: 'top 85%', once: true },
+        })
+      })
+
+      /* FEATURE GRID */
+      const gridTl = gsap.timeline({
+        scrollTrigger: { trigger: '.tg-grid-section', start: 'top 85%', once: true },
+      })
+      gridTl
+        .from('.tg-grid-section .tg-section-heading', { y: 40, opacity: 0, duration: 0.8 })
+        .from('.tg-feature-card', { y: 40, opacity: 0, stagger: 0.1, duration: 0.6, ease: 'back.out(1.2)' }, '-=0.3')
+
+      /* HOW IT WORKS */
       const stepsTl = gsap.timeline({
-        scrollTrigger: { trigger: '.cin-steps', start: 'top 88%', once: true },
+        scrollTrigger: { trigger: '.tg-steps-section', start: 'top 85%', once: true },
       })
-      stepsTl.fromTo('.cin-step',
-        { x: -60, opacity: 0, scale: 0.9 },
-        { x: 0, opacity: 1, scale: 1, stagger: 0.2, duration: 0.8, ease: 'power3.out' },
-      )
-      stepsTl.fromTo('.cin-step-line',
-        { scaleX: 0 },
-        { scaleX: 1, transformOrigin: 'left center', stagger: 0.2, duration: 0.6, ease: 'power2.inOut' },
-        '-=0.6'
-      )
+      stepsTl
+        .from('.tg-steps-section .tg-section-heading', { y: 40, opacity: 0, duration: 0.8 })
+        .from('.tg-step', { x: -40, opacity: 0, stagger: 0.2, duration: 0.7, ease: 'power3.out' }, '-=0.3')
 
-      /* AI SECTION — split reveal: text from left, demo from right */
-      const aiTl = gsap.timeline({
-        scrollTrigger: { trigger: '.landing-ai-section', start: 'top 85%', once: true },
+      /* CTA */
+      gsap.from('.tg-cta-inner', {
+        scale: 0.92, opacity: 0, y: 40, duration: 1, ease: 'power3.out',
+        scrollTrigger: { trigger: '.tg-cta', start: 'top 85%', once: true },
       })
-      aiTl.fromTo('.landing-ai-text',
-        { x: -60, opacity: 0 },
-        { x: 0, opacity: 1, duration: 0.9, ease: 'power3.out' },
-      )
-      aiTl.fromTo('.landing-ai-demo',
-        { x: 60, opacity: 0 },
-        { x: 0, opacity: 1, duration: 0.9, ease: 'power3.out' },
-        '-=0.7'
-      )
-      /* chat messages type in */
-      aiTl.fromTo('.chat-preview-message',
-        { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, stagger: 0.3, duration: 0.6, ease: 'power2.out' },
-        '-=0.3'
-      )
 
-      /* CTA — dramatic scale entrance */
-      gsap.fromTo('.landing-cta-content',
-        { scale: 0.9, opacity: 0, y: 40 },
-        { scale: 1, opacity: 1, y: 0, duration: 1, ease: 'power3.out',
-          scrollTrigger: { trigger: '.landing-cta', start: 'top 85%', once: true },
-        },
-      )
-
-      /* FOOTER slide up */
-      gsap.fromTo('.landing-footer-content',
-        { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.6,
-          scrollTrigger: { trigger: '.landing-footer', start: 'top 95%', once: true },
-        },
-      )
-
+      /* FOOTER */
+      gsap.from('.tg-footer-inner', {
+        y: 20, opacity: 0, duration: 0.6,
+        scrollTrigger: { trigger: '.tg-footer', start: 'top 95%', once: true },
+      })
     }, mainRef)
 
     return () => ctx.revert()
   }, [])
 
   return (
-    <div className="landing-page cin-page" ref={mainRef}>
-      {/* Ambient background */}
-      <div className="cin-bg">
-        <div className="cin-bg-glow cin-bg-glow-1" />
-        <div className="cin-bg-glow cin-bg-glow-2" />
-        <div className="cin-bg-glow cin-bg-glow-3" />
-        <div className="cin-bg-grid" />
-      </div>
+    <div className="tg-landing" ref={mainRef}>
 
-      {/* ── SCENE 1: Hero ─────────────────────── */}
-      <section className="landing-section landing-hero cin-hero">
-        {/* Nav inside hero so GSAP can animate it with the hero TL */}
-        <nav className="landing-nav">
-          <div className="landing-nav-logo"><Sparkles size={24} /> DataDict AI</div>
-          <div className="landing-nav-actions">
+      {/* ── Navbar ──────────────────────────────── */}
+      <nav className="tg-nav">
+        <div className="tg-nav-inner">
+          <div className="tg-nav-logo" onClick={() => navigate('/')}>
+            <Sparkles size={22} /> DataDict AI
+          </div>
+          <div className="tg-nav-links">
+            <a href="#features">Features</a>
+            <a href="#platform">Platform</a>
+            <a href="#how-it-works">How It Works</a>
+          </div>
+          <div className="tg-nav-actions">
             <button className="btn btn-ghost" onClick={() => navigate('/login')}>Sign In</button>
-            <button className="btn btn-primary" onClick={() => navigate('/signup')}>Get Started</button>
+            <button className="tg-nav-cta" onClick={() => navigate('/signup')}>
+              Get Started <ArrowUpRight size={14} />
+            </button>
           </div>
-        </nav>
+        </div>
+      </nav>
 
-        <div className="cin-hero-split">
-          <div className="landing-hero-content">
-            <div className="landing-hero-badge">
-              <Sparkles size={14} />
-              AI-Powered Data Documentation
-            </div>
-            <h1 className="cin-hero-title">
-              <span className="text-gradient">Understand</span> your databases<br/>in minutes
+      {/* ── Hero ───────────────────────────────── */}
+      <section className="tg-hero">
+        <div className="tg-hero-card">
+          {/* Grid pattern overlay */}
+          <div className="tg-hero-grid" />
+          {/* Geometric shapes */}
+          <div className="tg-hero-shapes">
+            <div className="tg-shape tg-shape-1" />
+            <div className="tg-shape tg-shape-2" />
+            <div className="tg-shape tg-shape-3" />
+            <div className="tg-shape tg-shape-4" />
+            <div className="tg-shape tg-shape-5" />
+            <div className="tg-shape tg-shape-6" />
+          </div>
+          <div className="tg-hero-content">
+            <h1 className="tg-hero-title">
+              The AI-Powered<br />Data Dictionary
             </h1>
-            <p className="landing-hero-subtitle">
-              Connect to any database, extract metadata automatically, analyze data quality,
-              and generate business-friendly documentation — all with AI assistance.
+            <p className="tg-hero-sub">
+              Our platform connects to your databases, extracts schemas<br className="hide-mobile" />
+              automatically, and generates intelligent documentation<br className="hide-mobile" />
+              with AI agents and human collaboration.
             </p>
-            <div className="landing-hero-actions">
-              <button className="btn btn-primary btn-lg cin-btn-glow" onClick={() => navigate('/signup')}>
-                Get Started Free <ArrowRight size={18} />
+            <div className="tg-hero-actions">
+              <button className="tg-btn-accent" onClick={() => navigate('/signup')}>
+                Get Started Free <ArrowRight size={16} />
               </button>
-              <button className="btn btn-outline btn-lg" onClick={() => navigate('/login')}>
-                <Play size={16} /> Watch Demo
-              </button>
-            </div>
-
-            {/* Stats */}
-            <div className="cin-stats">
-              <div className="cin-stat">
-                <Counter end={50} suffix="+" /><span>Databases Supported</span>
-              </div>
-              <div className="cin-stat-divider" />
-              <div className="cin-stat">
-                <Counter end={10} suffix="x" /><span>Faster Documentation</span>
-              </div>
-              <div className="cin-stat-divider" />
-              <div className="cin-stat">
-                <Counter end={99} suffix="%" /><span>Accuracy Rate</span>
-              </div>
             </div>
           </div>
-
-          {/* Hero SVG Illustration */}
-          <HeroIllustration />
         </div>
-        <div className="landing-scroll-indicator">
-          <ChevronDown size={24} /><span>Scroll to explore</span>
+        <div className="tg-scroll-hint">
+          <ChevronDown size={20} />
         </div>
       </section>
 
-      {/* ── SCENE 2: Product Preview ──────────── */}
-      <section className="landing-section cin-preview-section">
-        <div className="cin-preview">
-          <div className="cin-preview-window">
-            <div className="cin-preview-titlebar">
-              <div className="cin-dot red" /><div className="cin-dot yellow" /><div className="cin-dot green" />
-              <span>DataDict AI — Dashboard</span>
+      {/* ── Stats ──────────────────────────────── */}
+      <section className="tg-stats">
+        <h2 className="tg-stats-heading">
+          Real outcomes at<br />breakthrough speed.
+        </h2>
+        <div className="tg-stats-grid">
+          <div className="tg-stat-card tg-stat-light">
+            <div className="tg-stat-bars">
+              <div className="tg-stat-bar-row">
+                <span className="tg-stat-bar-label">TRADITIONAL</span>
+                <span className="tg-stat-bar-label">WEEKS</span>
+              </div>
+              <div className="tg-stat-bar tg-stat-bar-dark" style={{ width: '85%' }} />
+              <div className="tg-stat-bar-row">
+                <span className="tg-stat-bar-label">DATADICT AI</span>
+                <span className="tg-stat-bar-label">MINUTES</span>
+              </div>
+              <div className="tg-stat-bar tg-stat-bar-accent" style={{ width: '25%' }} />
             </div>
-            <div className="cin-preview-body">
-              <div className="cin-preview-sidebar">
-                <div className="cin-preview-nav-item active"><Database size={14} /> Connections</div>
-                <div className="cin-preview-nav-item"><Shield size={14} /> Quality</div>
-                <div className="cin-preview-nav-item"><MessageCircle size={14} /> AI Chat</div>
-              </div>
-              <div className="cin-preview-main">
-                <div className="cin-preview-card">
-                  <div className="cin-preview-card-header">customers</div>
-                  <div className="cin-preview-row"><span>id</span><span className="cin-tag">PRIMARY KEY</span></div>
-                  <div className="cin-preview-row"><span>email</span><span className="cin-tag">VARCHAR</span></div>
-                  <div className="cin-preview-row"><span>created_at</span><span className="cin-tag">TIMESTAMP</span></div>
-                </div>
-                <div className="cin-preview-ai">
-                  <Sparkles size={12} /> AI: "The customers table stores user profiles with 98% completeness"
-                </div>
-              </div>
+            <div className="tg-stat-big">
+              <Counter end={10} suffix="x" />
+              <span>Faster Documentation</span>
+            </div>
+          </div>
+          <div className="tg-stat-card tg-stat-dark">
+            <div className="tg-stat-dots">
+              {Array.from({ length: 30 }).map((_, i) => (
+                <div key={i} className={`tg-dot ${i < 15 ? 'active' : ''}`} />
+              ))}
+            </div>
+            <div className="tg-stat-big">
+              <Counter end={99} suffix="%" />
+              <span>Schema Accuracy</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── SCENE 3: Features ─────────────────── */}
-      <section className="landing-section landing-features">
-        <div className="landing-section-header">
-          <h2>Powerful Features</h2>
-          <p>Everything you need to understand and document your data</p>
+      {/* ── Platform Features (alternating Turgon-style) ── */}
+      <section className="tg-platform" id="platform">
+        <h2 className="tg-section-heading tg-section-heading-center">
+          Meet Your Data Intelligence Platform
+        </h2>
+
+        {/* Feature 1: AI Documentation */}
+        <div className="tg-feature-row">
+          <div className="tg-feat-text">
+            <div className="tg-feat-icon-circle">
+              <Brain size={24} />
+            </div>
+            <span className="tg-badge">AI DOCUMENTATION</span>
+            <h3>Don't just store your schema.<br />Understand it.</h3>
+            <p>
+              Our AI agents analyze your database structure and generate business-friendly
+              documentation automatically — explaining tables, columns, and relationships
+              in plain language.
+            </p>
+            <ul className="tg-feat-list">
+              <li><strong>4 AI Profiles:</strong> Beginner, Business, Technical & Balanced explanations</li>
+              <li><strong>Industry Context:</strong> E-commerce, healthcare, finance and more</li>
+            </ul>
+          </div>
+          <div className="tg-feat-visual">
+            <div className="tg-feat-preview">
+              <div className="tg-preview-header">
+                <Database size={20} style={{ color: 'var(--accent)' }} />
+                <div>
+                  <strong>Data Dictionary Assistant</strong>
+                  <span className="text-muted text-sm">AI Assistant for your database</span>
+                </div>
+              </div>
+              <div className="tg-preview-chat">
+                <div className="tg-preview-msg tg-preview-msg-ai">
+                  <Sparkles size={14} /> Hello! I'm your Data Dictionary Assistant. I can help you understand your data structure and answer questions.
+                </div>
+                <div className="tg-preview-chip">Where can I find info for sales by region?</div>
+                <div className="tg-preview-msg tg-preview-msg-ai">
+                  <Sparkles size={14} /> To find information about sales by region, check these tables: <strong>IN692W1</strong> — detailed sales by region, store, and product.
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="landing-features-grid">
+
+        {/* Feature 2: Data Quality */}
+        <div className="tg-feature-row tg-row-reverse">
+          <div className="tg-feat-text">
+            <div className="tg-feat-icon-circle">
+              <Shield size={24} />
+            </div>
+            <span className="tg-badge">DATA QUALITY</span>
+            <h3>Don't let bad data drive<br />your business decisions.</h3>
+            <p>
+              We analyze completeness, uniqueness, and statistical distributions across
+              every column — turning raw schemas into actionable quality insights.
+            </p>
+            <ul className="tg-feat-list">
+              <li><strong>Completeness:</strong> Null detection and fill-rate scoring per column</li>
+              <li><strong>Statistics:</strong> Mean, stddev, min/max, and distribution analysis</li>
+            </ul>
+          </div>
+          <div className="tg-feat-visual">
+            <div className="tg-feat-quality-demo">
+              <div className="tg-quality-header">
+                <Shield size={18} /> Data Quality Report
+              </div>
+              <div className="tg-quality-bars">
+                {[
+                  { name: 'Completeness', val: 96 },
+                  { name: 'Uniqueness', val: 82 },
+                  { name: 'Validity', val: 91 },
+                  { name: 'Consistency', val: 88 },
+                ].map(({ name, val }) => (
+                  <div key={name} className="tg-qbar-row">
+                    <span>{name}</span>
+                    <div className="tg-qbar-track">
+                      <div className="tg-qbar-fill" style={{ width: `${val}%` }} />
+                    </div>
+                    <span className="tg-qbar-val">{val}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Feature 3: Multi-DB */}
+        <div className="tg-feature-row">
+          <div className="tg-feat-text">
+            <div className="tg-feat-icon-circle">
+              <Layers size={24} />
+            </div>
+            <span className="tg-badge">MULTI-DATABASE</span>
+            <h3>Connect once.<br />Document everything.</h3>
+            <p>
+              Support for PostgreSQL, SQL Server, Snowflake, and SQLite — with secure credential
+              management and real-time connection testing built in.
+            </p>
+            <ul className="tg-feat-list">
+              <li><strong>Auto-discovery:</strong> Tables, views, columns, keys, indexes, and constraints</li>
+              <li><strong>Relationships:</strong> Foreign key mapping and dependency graphs</li>
+            </ul>
+          </div>
+          <div className="tg-feat-visual">
+            <div className="tg-feat-db-grid">
+              {[
+                { name: 'PostgreSQL', icon: '🐘' },
+                { name: 'SQL Server', icon: '📊' },
+                { name: 'Snowflake', icon: '❄️' },
+                { name: 'SQLite', icon: '💾' },
+              ].map(db => (
+                <div key={db.name} className="tg-db-card">
+                  <span className="tg-db-icon">{db.icon}</span>
+                  <span className="tg-db-name">{db.name}</span>
+                </div>
+              ))}
+              <div className="tg-db-center">
+                <Sparkles size={28} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Feature Grid ───────────────────────── */}
+      <section className="tg-grid-section" id="features">
+        <h2 className="tg-section-heading tg-section-heading-center">
+          Everything You Need
+        </h2>
+        <div className="tg-features-grid">
           {[
-            {
-              icon: Database,
-              title: 'Multi-Database Connectivity',
-              desc: 'Connect to PostgreSQL, SQL Server, Snowflake, and SQLite. Secure credential management with connection testing and validation built in.',
-            },
-            {
-              icon: Zap,
-              title: 'Automatic Schema Extraction',
-              desc: 'Extract tables, views, columns, data types, primary & foreign keys, indexes, constraints, and table relationships — all automatically.',
-            },
-            {
-              icon: Shield,
-              title: 'Data Quality Analysis',
-              desc: 'Completeness scores, uniqueness metrics, statistical summaries (mean, stddev, min/max), text length analysis, and overall quality scores per table.',
-            },
-            {
-              icon: Sparkles,
-              title: 'AI-Powered Documentation ✨',
-              desc: 'Personalized AI summaries via Mistral AI with 4 user profiles (beginner, business, technical, default) and industry-specific explanations.',
-            },
-            {
-              icon: MessageCircle,
-              title: 'Interactive AI Chat 💬',
-              desc: 'Natural language Q&A about your database with context-aware, multi-turn conversations. Per-table chat history persisted in Firebase Firestore.',
-            },
-            {
-              icon: Lock,
-              title: 'Firebase Authentication 🔐',
-              desc: 'Email/password and Google OAuth sign-in with full user session management and protected routes for enterprise-grade security.',
-            },
+            { icon: Database, title: 'Multi-Database Connectivity', desc: 'PostgreSQL, SQL Server, Snowflake, SQLite — connect and document securely.' },
+            { icon: Zap, title: 'Auto Schema Extraction', desc: 'Tables, views, columns, keys, indexes, constraints — all discovered automatically.' },
+            { icon: Shield, title: 'Data Quality Analysis', desc: 'Completeness, uniqueness, statistical summaries, and quality scores per table.' },
+            { icon: Sparkles, title: 'AI Documentation', desc: 'Mistral AI generates personalized documentation with 4 user profiles.' },
+            { icon: MessageCircle, title: 'Interactive AI Chat', desc: 'Natural language Q&A with context-aware, multi-turn conversations.' },
+            { icon: Lock, title: 'Enterprise Security', desc: 'Firebase Auth with email/password and Google OAuth for enterprise-grade access.' },
           ].map(({ icon: Icon, title, desc }) => (
-            <div className="landing-feature-card" key={title}>
-              <div className="landing-feature-icon"><Icon size={28} /></div>
+            <div className="tg-feature-card" key={title}>
+              <div className="tg-feature-card-icon"><Icon size={24} /></div>
               <h3>{title}</h3>
               <p>{desc}</p>
             </div>
@@ -318,21 +408,20 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── SCENE 4: How It Works ─────────────── */}
-      <section className="landing-section landing-how-it-works">
-        <div className="landing-section-header">
-          <h2>How It Works</h2>
-          <p>Get started in three simple steps</p>
-        </div>
-        <div className="cin-steps">
+      {/* ── How It Works ───────────────────────── */}
+      <section className="tg-steps-section" id="how-it-works">
+        <h2 className="tg-section-heading tg-section-heading-center">
+          How It Works
+        </h2>
+        <div className="tg-steps">
           {[
-            { num: '1', h: 'Connect Your Database', p: 'Add your database credentials securely. We support all major databases.' },
-            { num: '2', h: 'Analyze & Extract',     p: 'We automatically scan your schema and analyze data quality metrics.' },
-            { num: '3', h: 'Chat & Document',       p: 'Ask questions, generate documentation, and share insights with your team.' },
-          ].map(({ num, h, p: desc }) => (
-            <div className="cin-step" key={num}>
-              <div className="cin-step-num">{num}</div>
-              <div className="cin-step-line" />
+            { num: '1', icon: Database, h: 'Connect Your Database', p: 'Add credentials securely. We support all major SQL databases with encrypted storage.' },
+            { num: '2', icon: BarChart3, h: 'Analyze & Extract', p: 'We automatically scan your schema, profile data quality, and map relationships.' },
+            { num: '3', icon: Brain, h: 'Chat & Document', p: 'Ask questions in plain language, generate docs, and share insights with your team.' },
+          ].map(({ num, icon: Icon, h, p: desc }) => (
+            <div className="tg-step" key={num}>
+              <div className="tg-step-num">{num}</div>
+              <div className="tg-step-icon"><Icon size={22} /></div>
               <h3>{h}</h3>
               <p>{desc}</p>
             </div>
@@ -340,49 +429,26 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── SCENE 5: AI Section ───────────────── */}
-      <section className="landing-section landing-ai-section">
-        <div className="landing-ai-content">
-          <div className="landing-ai-text">
-            <h2><Sparkles size={32} style={{ color: '#10a37f' }} /> Powered by AI</h2>
-            <p>
-              Our platform uses Mistral AI to understand your data context and provide
-              intelligent responses. Ask anything about your database schemas, relationships,
-              or data quality — and get instant, accurate answers.
-            </p>
-            <ul className="landing-ai-features">
-              <li>Natural language queries about your data</li>
-              <li>Auto-generated table and column descriptions</li>
-              <li>Smart suggestions for data quality improvements</li>
-              <li>Context-aware chat history per table</li>
-            </ul>
-          </div>
-          <div className="landing-ai-demo">
-            <div className="landing-chat-preview">
-              <div className="chat-preview-message user">What columns store customer contact info?</div>
-              <div className="chat-preview-message assistant">
-                Based on the schema, customer contact information is stored in the <strong>customers</strong> table
-                with columns: email, phone, address_line1, city, state, and postal_code.
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── SCENE 6: CTA ──────────────────────── */}
-      <section className="landing-section landing-cta">
-        <div className="landing-cta-content">
+      {/* ── CTA ────────────────────────────────── */}
+      <section className="tg-cta">
+        <div className="tg-cta-inner">
           <h2>Ready to understand your data?</h2>
-          <p>Start using DataDict AI today — no credit card required.</p>
-          <button className="btn btn-primary btn-lg cin-btn-glow" onClick={() => navigate('/signup')}>
-            Get Started Free <ArrowRight size={18} />
-          </button>
+          <p>Start documenting your databases with AI — no credit card required.</p>
+          <div className="tg-cta-buttons">
+            <button className="tg-btn-accent tg-btn-lg" onClick={() => navigate('/signup')}>
+              Get Started Free <ArrowRight size={18} />
+            </button>
+            <button className="tg-btn-outline-dark tg-btn-lg" onClick={() => navigate('/login')}>
+              Sign In <ArrowUpRight size={16} />
+            </button>
+          </div>
         </div>
       </section>
 
-      <footer className="landing-footer">
-        <div className="landing-footer-content">
-          <div className="landing-footer-logo"><Sparkles size={20} /> DataDict AI</div>
+      {/* ── Footer ─────────────────────────────── */}
+      <footer className="tg-footer">
+        <div className="tg-footer-inner">
+          <div className="tg-footer-logo"><Sparkles size={18} /> DataDict AI</div>
           <p>© 2026 DataDict AI. Built with ❤️ for data teams.</p>
         </div>
       </footer>

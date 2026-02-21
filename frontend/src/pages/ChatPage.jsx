@@ -6,6 +6,7 @@ import { sendChatMessage, getConnections, getSchemas, getTables, getTableDetail 
 import { useAuth } from '../contexts/AuthContext'
 import {
   getUserChats,
+  getUserPreferences,
   createChat as createFirestoreChat,
   updateChat as updateFirestoreChat,
   deleteChat as deleteFirestoreChat
@@ -34,12 +35,16 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false)
   const [loadingChats, setLoadingChats] = useState(true)
   const [showHistory, setShowHistory] = useState(true)
+  const [aiPrefs, setAiPrefs] = useState({})
 
   const bottomRef = useRef(null)
 
-  // Load connections and chats on mount
+  // Load connections, chats, and AI preferences on mount
   useEffect(() => {
     getConnections().then(setConnections).catch(console.error)
+    if (user?.uid) {
+      getUserPreferences(user.uid).then(setAiPrefs).catch(() => {})
+    }
     
     // Load chats from Firestore
     if (user?.uid) {
@@ -114,7 +119,7 @@ export default function ChatPage() {
 
   // Save chat to Firestore
   const saveChat = useCallback(async (chatId, chatMessages, isNewChat = false) => {
-    if (!chatId || !user?.uid) return
+    if (!user?.uid) return
     
     const firstUserMsg = chatMessages.find(m => m.role === 'user')
     const title = firstUserMsg?.content?.slice(0, 50) || 'New Chat'
@@ -132,7 +137,7 @@ export default function ChatPage() {
         setActiveChatId(newId)
         localStorage.setItem(ACTIVE_CHAT_KEY, newId)
         // Update local state
-        setAllChats(prev => [...prev, {
+        setAllChats(prev => [{
           id: newId,
           connId: selectedConnId,
           schema: selectedSchema,
@@ -140,15 +145,16 @@ export default function ChatPage() {
           title,
           messages: chatMessages,
           userId: user.uid,
-        }])
+          updatedAt: Date.now(),
+        }, ...prev])
         return newId
-      } else {
+      } else if (chatId) {
         // Update existing chat
         await updateFirestoreChat(chatId, chatMessages, title)
         // Update local state
         setAllChats(prev => prev.map(c => 
           c.id === chatId 
-            ? { ...c, messages: chatMessages, title }
+            ? { ...c, messages: chatMessages, title, updatedAt: Date.now() }
             : c
         ))
       }
@@ -212,7 +218,11 @@ export default function ChatPage() {
     }
 
     try {
-      const res = await sendChatMessage(updated, context)
+      const res = await sendChatMessage(updated, context, {
+        userProfile: aiPrefs.aiProfile,
+        industry: aiPrefs.industry,
+        customInstructions: aiPrefs.customInstructions,
+      })
       const newMessages = [...updated, { role: 'assistant', content: res.reply }]
       setMessages(newMessages)
       

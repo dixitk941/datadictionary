@@ -4,11 +4,14 @@ import { Key, Link as LinkIcon, Sparkles, ShieldCheck, BarChart3 } from 'lucide-
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { getTableDetail, getQualityReport, getAISummary } from '../api/client'
+import { useAuth } from '../contexts/AuthContext'
+import { getUserPreferences } from '../services/firestoreService'
 
 export default function TableDetailPage() {
   const { connId, table } = useParams()
   const [searchParams] = useSearchParams()
   const schema = searchParams.get('schema') || undefined
+  const { user } = useAuth()
 
   const [tab, setTab] = useState('columns')
   const [meta, setMeta] = useState(null)
@@ -16,6 +19,13 @@ export default function TableDetailPage() {
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [summaryLoading, setSummaryLoading] = useState(false)
+  const [aiPrefs, setAiPrefs] = useState({})
+
+  useEffect(() => {
+    if (user?.uid) {
+      getUserPreferences(user.uid).then(setAiPrefs).catch(() => {})
+    }
+  }, [user?.uid])
 
   useEffect(() => {
     setLoading(true)
@@ -34,7 +44,10 @@ export default function TableDetailPage() {
   const handleGenerateSummary = async () => {
     setSummaryLoading(true)
     try {
-      const res = await getAISummary(connId, table, schema)
+      const res = await getAISummary(connId, table, schema, {
+        userProfile: aiPrefs.aiProfile,
+        industry: aiPrefs.industry,
+      })
       setSummary(res.summary)
       setTab('ai')
     } catch (e) {

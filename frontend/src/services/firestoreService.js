@@ -20,11 +20,16 @@ const CHATS_COLLECTION = 'chats'
 export async function getUserChats(userId) {
   const q = query(
     collection(db, CHATS_COLLECTION),
-    where('userId', '==', userId),
-    orderBy('updatedAt', 'desc')
+    where('userId', '==', userId)
   )
   const snapshot = await getDocs(q)
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  return snapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .sort((a, b) => {
+      const aTime = a.updatedAt?.toMillis?.() || a.updatedAt?.seconds * 1000 || 0
+      const bTime = b.updatedAt?.toMillis?.() || b.updatedAt?.seconds * 1000 || 0
+      return bTime - aTime
+    })
 }
 
 export async function getChatsByTable(userId, connId, schema, table) {

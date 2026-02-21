@@ -7,12 +7,44 @@ Automatically inspects all tables in a connected database and returns:
 - Nullable vs non-nullable column ratio
 - Table sizes (row-based)
 """
+import time
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 from services.db_connector import get_engine
 from sqlalchemy import inspect as sa_inspect, text
 
 router = APIRouter()
+
+# ── In-memory cache (10 min TTL) ────────────────────
+_CACHE: dict[tuple, dict] = {}   # key: (conn_id, schema) -> {"data": ..., "ts": ...}
+_CACHE_TTL = 600  # seconds (10 minutes)
+
+
+def _cache_key(conn_id: str, schema: Optional[str]) -> tuple:
+    return (conn_id, schema or "__default__")
+
+
+def _get_cached(conn_id: str, schema: Optional[str]) -> Optional[dict]:
+    key = _cache_key(conn_id, schema)
+    entry = _CACHE.get(key)
+    if entry and (time.time() - entry["ts"]) < _CACHE_TTL:
+        return entry["data"]
+    return None
+
+
+def _set_cache(conn_id: str, schema: Optional[str], data: dict):
+    key = _cache_key(conn_id, schema)
+    _CACHE[key] = {"data": data, "ts": time.time()}
+
+
+def invalidate_cache(conn_id: str = None):
+    """Clear cache for a specific connection or all."""
+    if conn_id:
+        keys_to_del = [k for k in _CACHE if k[0] == conn_id]
+        for k in keys_to_del:
+            del _CACHE[k]
+    else:
+        _CACHE.clear()
 
 
 def _safe_row_count(engine, table: str, schema: str = None) -> int:
@@ -28,17 +60,29 @@ def _safe_row_count(engine, table: str, schema: str = None) -> int:
         return 0
 
 
+@router.delete("/{conn_id}/cache")
+async def clear_cache(conn_id: str):
+    """Manually invalidate analytics cache for a connection."""
+    invalidate_cache(conn_id)
+    return {"status": "cache_cleared"}
+
+
 @router.get("/{conn_id}")
-async def get_analytics(conn_id: str, schema: Optional[str] = Query(None)):
+async def get_analytics(
+    conn_id: str,
+    schema: Optional[str] = Query(None),
+    refresh: bool = Query(False, description="Force refresh, bypass cache"),
+):
     """
-    Return full analytics for a connected database:
-    - tables: list of {name, row_count, column_count, type}
-    - type_distribution: {type_name: count}
-    - nullable_stats: {nullable: N, non_nullable: N}
-    - top_tables_by_rows: sorted desc by row_count (top 15)
-    - top_tables_by_columns: sorted desc by column_count (top 15)
-    - total_tables, total_columns, total_rows
+    Return full analytics for a connected database (cached for 10 min).
+    Pass ?refresh=true to force a fresh read.
     """
+    # Check cache first
+    if not refresh:
+        cached = _get_cached(conn_id, schema)
+        if cached:
+            return {**cached, "cached": True}
+
     try:
         engine = get_engine(conn_id)
     except KeyError:
@@ -132,7 +176,7 @@ async def get_analytics(conn_id: str, schema: Optional[str] = Query(None)):
         reverse=True,
     )
 
-    return {
+    result = {
         "total_tables": len(table_names),
         "total_views": len(view_names),
         "total_columns": total_columns,
@@ -146,6 +190,9 @@ async def get_analytics(conn_id: str, schema: Optional[str] = Query(None)):
             "non_nullable": non_nullable_count,
         },
     }
+
+    _set_cache(conn_id, schema, result)
+    return {**result, "cached": False}
 
 
 def _normalize_type(raw: str) -> str:
