@@ -2627,8 +2627,31 @@ a:hover {
 .tg-hero-content {
   position: relative;
   z-index: 2;
-  text-align: center;
+  text-align: left;
   padding: 60px 40px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Hero split layout: text + lottie side by side */
+.tg-hero-body {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  padding: 40px 48px;
+}
+
+.tg-hero-lottie {
+  flex: 0 0 420px;
+  max-width: 420px;
+  height: 380px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
 }
 
 .tg-hero-title {
@@ -3246,6 +3269,10 @@ a:hover {
   .tg-nav-links { display: none; }
   .tg-hero-title { font-size: 2.5rem; }
   .tg-hero-card { min-height: 400px; }
+  .tg-hero-body { flex-direction: column; padding: 32px 24px; gap: 16px; }
+  .tg-hero-content { text-align: center; padding: 0; }
+  .tg-hero-lottie { flex: 0 0 280px; max-width: 320px; height: 260px; }
+  .tg-hero-actions { justify-content: center; }
   .tg-stats-heading { font-size: 2rem; }
   .tg-stats-grid { grid-template-columns: 1fr; }
   .tg-feature-row { grid-template-columns: 1fr; gap: 32px; }
@@ -3276,6 +3303,8 @@ a:hover {
   .tg-feat-text h3 { font-size: 1.4rem; }
   .tg-hero-card { min-height: 360px; border-radius: 18px; }
   .tg-hero-actions { flex-direction: column; align-items: center; }
+  .tg-hero-lottie { flex: 0 0 220px; max-width: 260px; height: 200px; }
+  .tg-hero-body { padding: 24px 16px; }
 }
 
 /* ── Auth Pages (Detached Design) ────────────────── */

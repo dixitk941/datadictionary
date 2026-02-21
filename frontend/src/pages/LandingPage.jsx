@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { DotLottieReact } from '@lottiefiles/dotlottie-react'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -67,6 +68,10 @@ export default function LandingPage() {
         .from('.tg-hero-actions', {
           y: 25, opacity: 0, scale: 0.95, duration: 0.7,
         }, '-=0.3')
+        .from('.tg-hero-lottie', {
+          y: 60, opacity: 0, scale: 0.85,
+          duration: 1.1, ease: 'power4.out',
+        }, '-=0.6')
 
       /* HERO SHAPES — stagger pop-in with spring */
       gsap.from('.tg-shape', {
@@ -200,19 +205,29 @@ export default function LandingPage() {
             <div className="tg-shape tg-shape-5" />
             <div className="tg-shape tg-shape-6" />
           </div>
-          <div className="tg-hero-content">
-            <h1 className="tg-hero-title">
-              The AI-Powered<br />Data Dictionary
-            </h1>
-            <p className="tg-hero-sub">
-              Our platform connects to your databases, extracts schemas<br className="hide-mobile" />
-              automatically, and generates intelligent documentation<br className="hide-mobile" />
-              with AI agents and human collaboration.
-            </p>
-            <div className="tg-hero-actions">
-              <button className="tg-btn-accent" onClick={() => navigate('/signup')}>
-                Get Started Free <ArrowRight size={16} />
-              </button>
+          <div className="tg-hero-body">
+            <div className="tg-hero-content">
+              <h1 className="tg-hero-title">
+                The AI-Powered<br />Data Dictionary
+              </h1>
+              <p className="tg-hero-sub">
+                Our platform connects to your databases, extracts schemas<br className="hide-mobile" />
+                automatically, and generates intelligent documentation<br className="hide-mobile" />
+                with AI agents and human collaboration.
+              </p>
+              <div className="tg-hero-actions">
+                <button className="tg-btn-accent" onClick={() => navigate('/signup')}>
+                  Get Started Free <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
+            <div className="tg-hero-lottie">
+              <DotLottieReact
+                src="https://lottie.host/a6389e90-a40d-4b1b-8838-e4a61e250fe7/dtGPRnFA0p.lottie"
+                loop
+                autoplay
+                style={{ width: '100%', height: '100%' }}
+              />
             </div>
           </div>
         </div>
@@ -449,7 +464,7 @@ export default function LandingPage() {
       <footer className="tg-footer">
         <div className="tg-footer-inner">
           <div className="tg-footer-logo"><Sparkles size={18} /> DataDict AI</div>
-          <p>© 2026 DataDict AI. Built with ❤️ for data teams.</p>
+          <p>© 2026 DataDict AI. Developed and created by team Hackunama.</p>
         </div>
       </footer>
     </div>
