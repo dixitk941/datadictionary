@@ -1,0 +1,19 @@
+[Unit]
+Description=DataDict AI – FastAPI backend
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/datadictionary/backend
+EnvironmentFile=/var/www/datadictionary/backend/.env
+ExecStart=/var/www/datadictionary/backend/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8432 --workers 2
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=datadictionary-api
+
+[Install]
+WantedBy=multi-user.target
