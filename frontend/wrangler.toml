@@ -1,9 +1,0 @@
-# Cloudflare Pages project config
-# Used by `wrangler pages deploy dist` and the CF dashboard.
-name = "datadictionary-frontend"
-compatibility_date = "2024-01-01"
-
-[env.production]
-# Wrangler doesn't manage Pages env vars — set VITE_API_URL in the CF dashboard:
-# Pages > datadictionary-frontend > Settings > Environment variables
-# Key: VITE_API_URL  Value: https://api.aitoolcraft.com
