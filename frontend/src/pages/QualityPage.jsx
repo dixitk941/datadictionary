@@ -1,7 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { ShieldCheck } from 'lucide-react'
 import { getConnections, getSchemas, getTables, getQualityReport } from '../api/client'
+import StageLoader from '../components/StageLoader'
+
+const QUALITY_STAGES = [
+  'Connecting to table…',
+  'Sampling data…',
+  'Checking completeness…',
+  'Running quality checks…',
+]
 
 export default function QualityPage() {
   const [connections, setConnections] = useState([])
@@ -37,7 +45,7 @@ export default function QualityPage() {
     }).catch(() => setTables([]))
   }, [selectedConn, selectedSchema])
 
-  const runAnalysis = async () => {
+  const runAnalysis = useCallback(async () => {
     if (!selectedTable) return
     setLoading(true)
     setReport(null)
@@ -49,13 +57,13 @@ export default function QualityPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedConn, selectedTable, selectedSchema])
 
-  const scoreColor = (v) => {
+  const scoreColor = useCallback((v) => {
     if (v >= 90) return 'var(--success)'
     if (v >= 70) return 'var(--warning)'
     return 'var(--danger)'
-  }
+  }, [])
 
   return (
     <div>
@@ -101,7 +109,11 @@ export default function QualityPage() {
             </button>
           </div>
 
-          {loading && <div className="loading-overlay"><div className="spinner" /></div>}
+          {loading && (
+            <div className="card">
+              <StageLoader stages={QUALITY_STAGES} />
+            </div>
+          )}
 
           {report && !loading && (
             <>

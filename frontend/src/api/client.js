@@ -1,4 +1,8 @@
-const BASE = '/api'
+import { cache } from '../lib/cache'
+
+// Dev: Vite proxy forwards /api → localhost:8000
+// Production (CF Pages): VITE_API_URL=https://api.aitoolcraft.com
+const BASE = (import.meta.env.VITE_API_URL ?? '') + '/api'
 
 async function request(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
@@ -12,41 +16,69 @@ async function request(path, options = {}) {
   return res.json()
 }
 
+// ── TTL constants ──────────────────────────────────
+const TTL_CONNECTIONS = 5 * 60_000   // 5 min
+const TTL_SCHEMAS     = 5 * 60_000   // 5 min
+const TTL_TABLES      = 2 * 60_000   // 2 min
+const TTL_ANALYTICS   = 3 * 60_000   // 3 min
+const TTL_QUALITY     = 10 * 60_000  // 10 min
+const TTL_DETAIL      = 2 * 60_000   // 2 min
+
 // ── Connections ────────────────────────────────────
 export function getConnections() {
-  return request('/connections')
+  return cache.fetch('connections', () => request('/connections'), TTL_CONNECTIONS)
 }
 
-export function createConnection(data) {
-  return request('/connections', {
+export async function createConnection(data) {
+  const result = await request('/connections', {
     method: 'POST',
     body: JSON.stringify(data),
   })
+  cache.invalidate('connections')
+  return result
 }
 
-export function deleteConnection(id) {
-  return request(`/connections/${id}`, { method: 'DELETE' })
+export async function deleteConnection(id) {
+  const result = await request(`/connections/${id}`, { method: 'DELETE' })
+  cache.invalidate('connections')
+  cache.invalidate(`schemas:${id}`)
+  cache.invalidate(`tables:${id}`)
+  cache.invalidate(`analytics:${id}`)
+  cache.invalidate(`detail:${id}`)
+  return result
 }
 
 // ── Metadata ──────────────────────────────────────
 export function getSchemas(connId) {
-  return request(`/metadata/${connId}/schemas`)
+  return cache.fetch(`schemas:${connId}`, () => request(`/metadata/${connId}/schemas`), TTL_SCHEMAS)
 }
 
 export function getTables(connId, schema) {
   const qs = schema ? `?schema=${encodeURIComponent(schema)}` : ''
-  return request(`/metadata/${connId}/tables${qs}`)
+  return cache.fetch(
+    `tables:${connId}:${schema || '__none__'}`,
+    () => request(`/metadata/${connId}/tables${qs}`),
+    TTL_TABLES
+  )
 }
 
 export function getTableDetail(connId, table, schema) {
   const qs = schema ? `?schema=${encodeURIComponent(schema)}` : ''
-  return request(`/metadata/${connId}/tables/${encodeURIComponent(table)}${qs}`)
+  return cache.fetch(
+    `detail:${connId}:${schema || '__none__'}:${table}`,
+    () => request(`/metadata/${connId}/tables/${encodeURIComponent(table)}${qs}`),
+    TTL_DETAIL
+  )
 }
 
 // ── Quality ───────────────────────────────────────
 export function getQualityReport(connId, table, schema) {
   const qs = schema ? `?schema=${encodeURIComponent(schema)}` : ''
-  return request(`/quality/${connId}/tables/${encodeURIComponent(table)}${qs}`)
+  return cache.fetch(
+    `quality:${connId}:${schema || '__none__'}:${table}`,
+    () => request(`/quality/${connId}/tables/${encodeURIComponent(table)}${qs}`),
+    TTL_QUALITY
+  )
 }
 
 // ── Analytics ─────────────────────────────────────
@@ -55,7 +87,9 @@ export function getAnalytics(connId, schema, refresh = false) {
   if (schema) params.set('schema', schema)
   if (refresh) params.set('refresh', 'true')
   const qs = params.toString() ? `?${params}` : ''
-  return request(`/analytics/${connId}${qs}`)
+  const key = `analytics:${connId}:${schema || '__none__'}`
+  if (refresh) cache.invalidate(key)
+  return cache.fetch(key, () => request(`/analytics/${connId}${qs}`), TTL_ANALYTICS)
 }
 
 // ── AI ────────────────────────────────────────────

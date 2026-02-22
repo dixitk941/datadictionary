@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { Key, Link as LinkIcon, Sparkles, ShieldCheck, BarChart3 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
@@ -6,6 +6,20 @@ import remarkGfm from 'remark-gfm'
 import { getTableDetail, getQualityReport, getAISummary } from '../api/client'
 import { useAuth } from '../contexts/AuthContext'
 import { getUserPreferences } from '../services/firestoreService'
+import StageLoader from '../components/StageLoader'
+
+const DETAIL_STAGES = [
+  'Loading table structure…',
+  'Reading column definitions…',
+  'Running quality checks…',
+  'Almost ready…',
+]
+
+const qualityColor = (score) => {
+  if (score >= 90) return 'var(--success)'
+  if (score >= 70) return 'var(--warning)'
+  return 'var(--danger)'
+}
 
 export default function TableDetailPage() {
   const { connId, table } = useParams()
@@ -41,7 +55,7 @@ export default function TableDetailPage() {
       .finally(() => setLoading(false))
   }, [connId, table, schema])
 
-  const handleGenerateSummary = async () => {
+  const handleGenerateSummary = useCallback(async () => {
     setSummaryLoading(true)
     try {
       const res = await getAISummary(connId, table, schema, {
@@ -55,16 +69,17 @@ export default function TableDetailPage() {
     } finally {
       setSummaryLoading(false)
     }
-  }
+  }, [connId, table, schema, aiPrefs])
 
   if (loading) {
-    return <div className="loading-overlay"><div className="spinner" /></div>
-  }
-
-  const qualityColor = (score) => {
-    if (score >= 90) return 'var(--success)'
-    if (score >= 70) return 'var(--warning)'
-    return 'var(--danger)'
+    return (
+      <div>
+        <h1 className="page-title">{decodeURIComponent(table)}</h1>
+        <div className="card">
+          <StageLoader stages={DETAIL_STAGES} />
+        </div>
+      </div>
+    )
   }
 
   return (

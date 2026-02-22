@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -9,6 +9,7 @@ import {
   updateProfile
 } from 'firebase/auth'
 import { auth } from '../firebase/config'
+import { cache } from '../lib/cache'
 
 const AuthContext = createContext(null)
 
@@ -32,28 +33,29 @@ export function AuthProvider({ children }) {
     return unsubscribe
   }, [])
 
-  const login = async (email, password) => {
+  const login = useCallback(async (email, password) => {
     return signInWithEmailAndPassword(auth, email, password)
-  }
+  }, [])
 
-  const signup = async (email, password, displayName) => {
+  const signup = useCallback(async (email, password, displayName) => {
     const result = await createUserWithEmailAndPassword(auth, email, password)
     if (displayName) {
       await updateProfile(result.user, { displayName })
     }
     return result
-  }
+  }, [])
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = useCallback(async () => {
     const provider = new GoogleAuthProvider()
     return signInWithPopup(auth, provider)
-  }
+  }, [])
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
+    cache.clear()  // clear all cached API data on sign-out
     return signOut(auth)
-  }
+  }, [])
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     loading,
     login,
@@ -61,7 +63,7 @@ export function AuthProvider({ children }) {
     loginWithGoogle,
     logout,
     isAuthenticated: !!user,
-  }
+  }), [user, loading, login, signup, loginWithGoogle, logout])
 
   return (
     <AuthContext.Provider value={value}>

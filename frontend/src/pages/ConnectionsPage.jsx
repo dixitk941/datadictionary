@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Trash2, Plus, Database } from 'lucide-react'
 import { getConnections, createConnection, deleteConnection } from '../api/client'
 
@@ -29,18 +29,17 @@ export default function ConnectionsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const load = () => getConnections().then(setConnections).catch(() => {})
+  const load = useCallback(() => getConnections().then(setConnections).catch(() => {}), [])
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [load])
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
       const payload = { ...form }
       if (payload.port) payload.port = parseInt(payload.port, 10)
-      // Remove empty strings
       Object.keys(payload).forEach((k) => {
         if (payload[k] === '') delete payload[k]
       })
@@ -53,12 +52,23 @@ export default function ConnectionsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [form, load])
 
-  const handleDelete = async (id) => {
-    await deleteConnection(id)
-    load()
-  }
+  const handleDelete = useCallback(async (id) => {
+    // Optimistic remove — UI updates instantly, rolls back on error
+    setConnections((prev) => prev.filter((c) => c.id !== id))
+    try {
+      await deleteConnection(id)
+    } catch {
+      load() // restore on failure
+    }
+  }, [load])
+
+  const handleFormChange = useCallback((field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }))
+  }, [])
+
+  const toggleForm = useCallback(() => setShowForm((v) => !v), [])
 
   const isSnowflake = form.db_type === 'snowflake'
   const isSqlite = form.db_type === 'sqlite'
@@ -67,7 +77,7 @@ export default function ConnectionsPage() {
     <div>
       <div className="flex items-center" style={{ justifyContent: 'space-between', marginBottom: 24 }}>
         <h1 className="page-title" style={{ marginBottom: 0 }}>Database Connections</h1>
-        <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+        <button className="btn btn-primary" onClick={toggleForm}>
           <Plus size={16} /> New Connection
         </button>
       </div>

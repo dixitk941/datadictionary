@@ -7,3 +7,9 @@ venv/
 .venv/
 *.egg-info/
 .DS_Store
+
+# Backend runtime state (contains DB credentials — never commit)
+backend/connections_cache.json
+
+# Keep .env.production (no secrets, just API URL for CF Pages build)
+!frontend/.env.production

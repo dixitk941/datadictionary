@@ -1,7 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback, useTransition } from 'react'
 import { Link } from 'react-router-dom'
-import { Table2, Eye, ChevronRight } from 'lucide-react'
+import { Table2, Eye, Search } from 'lucide-react'
 import { getConnections, getSchemas, getTables } from '../api/client'
+import StageLoader from '../components/StageLoader'
+
+const TABLE_STAGES = [
+  'Connecting to database…',
+  'Fetching schema info…',
+  'Loading tables…',
+  'Organizing results…',
+]
 
 export default function TablesPage() {
   const [connections, setConnections] = useState([])
@@ -10,6 +18,9 @@ export default function TablesPage() {
   const [selectedSchema, setSelectedSchema] = useState('')
   const [tables, setTables] = useState([])
   const [loading, setLoading] = useState(false)
+  const [search, setSearch] = useState('')
+  const [inputVal, setInputVal] = useState('')
+  const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
     getConnections().then((conns) => {
@@ -29,11 +40,27 @@ export default function TablesPage() {
   useEffect(() => {
     if (!selectedConn) return
     setLoading(true)
+    setSearch('')
+    setInputVal('')
     getTables(selectedConn, selectedSchema || undefined)
       .then(setTables)
       .catch(() => setTables([]))
       .finally(() => setLoading(false))
   }, [selectedConn, selectedSchema])
+
+  const handleConnChange = useCallback((e) => setSelectedConn(e.target.value), [])
+  const handleSchemaChange = useCallback((e) => setSelectedSchema(e.target.value), [])
+  const handleSearch = useCallback((e) => {
+    const val = e.target.value
+    setInputVal(val)                          // instant — keeps input responsive
+    startTransition(() => setSearch(val))     // deferred — won’t block typing
+  }, [startTransition])
+
+  const filteredTables = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return tables
+    return tables.filter((t) => t.name.toLowerCase().includes(q) || (t.schema && t.schema.toLowerCase().includes(q)))
+  }, [tables, search])
 
   return (
     <div>
@@ -54,10 +81,10 @@ export default function TablesPage() {
 
       {connections.length > 0 && (
         <>
-          <div className="flex gap-4 mb-6">
+          <div className="flex gap-4 mb-6" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div className="form-group" style={{ minWidth: 220 }}>
               <label className="form-label">Connection</label>
-              <select className="form-select" value={selectedConn} onChange={(e) => setSelectedConn(e.target.value)}>
+              <select className="form-select" value={selectedConn} onChange={handleConnChange}>
                 {connections.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -66,29 +93,45 @@ export default function TablesPage() {
             {schemas.length > 0 && (
               <div className="form-group" style={{ minWidth: 180 }}>
                 <label className="form-label">Schema</label>
-                <select className="form-select" value={selectedSchema} onChange={(e) => setSelectedSchema(e.target.value)}>
+                <select className="form-select" value={selectedSchema} onChange={handleSchemaChange}>
                   {schemas.map((s) => (
                     <option key={s} value={s}>{s}</option>
                   ))}
                 </select>
               </div>
             )}
+            {tables.length > 0 && (
+              <div className="form-group" style={{ minWidth: 220, marginLeft: 'auto' }}>
+                <label className="form-label">Search</label>
+                <div className="input-with-icon">
+                  <Search size={16} />
+                  <input
+                    className="form-input"
+                    placeholder="Filter tables…"
+                    value={inputVal}
+                    onChange={handleSearch}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {loading && (
-            <div className="loading-overlay"><div className="spinner" /></div>
+            <div className="card">
+              <StageLoader stages={TABLE_STAGES} />
+            </div>
           )}
 
-          {!loading && tables.length === 0 && (
+          {!loading && filteredTables.length === 0 && (
             <div className="card">
               <div className="empty-state">
-                <h3>No tables found</h3>
-                <p className="text-muted text-sm">This schema contains no tables or views.</p>
+                <h3>{search ? 'No matching tables' : 'No tables found'}</h3>
+                <p className="text-muted text-sm">{search ? `No tables match "${search}"` : 'This schema contains no tables or views.'}</p>
               </div>
             </div>
           )}
 
-          {!loading && tables.length > 0 && (
+          {!loading && filteredTables.length > 0 && (
             <div className="card">
               <table className="data-table">
                 <thead>
@@ -100,7 +143,7 @@ export default function TablesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {tables.map((t) => (
+                  {filteredTables.map((t) => (
                     <tr key={t.name}>
                       <td style={{ fontWeight: 500 }}>
                         <span className="flex items-center gap-2">

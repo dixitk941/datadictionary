@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback, memo } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Database, Table2, ShieldCheck, MessageCircle, ArrowRight, ArrowUpRight,
@@ -9,11 +9,21 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
 } from 'recharts'
+import { SkeletonChart } from '../components/Skeleton'
 
 const CHART_COLORS = [
   '#1a7f56', '#2d9e6e', '#3bb87f', '#6fd4a1', '#a8e6c3',
   '#0967d2', '#8b5cf6', '#e5930a', '#dc3545', '#06b6d4',
 ]
+
+const tooltipStyle = {
+  backgroundColor: 'var(--tooltip-bg)',
+  border: '1px solid var(--tooltip-border)',
+  borderRadius: 10,
+  color: 'var(--tooltip-text)',
+  fontSize: 13,
+  boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+}
 
 function formatNumber(n) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
@@ -21,14 +31,23 @@ function formatNumber(n) {
   return n?.toString() || '0'
 }
 
-function StatCard({ icon: Icon, label, value, subtitle, primary, iconBg, iconColor }) {
+const StatCard = memo(function StatCard({ icon: Icon, label, value, subtitle, primary, iconBg, iconColor, loading }) {
   return (
     <div className={`stat-box${primary ? ' stat-primary' : ''}`}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div>
+        <div style={{ flex: 1 }}>
           <div className="stat-label">{label}</div>
-          <div className="stat-value">{value}</div>
-          {subtitle && <div className="stat-change">{subtitle}</div>}
+          {loading ? (
+            <>
+              <div className="skeleton" style={{ height: 26, width: '45%', borderRadius: 6, margin: '10px 0 8px' }} />
+              <div className="skeleton" style={{ height: 10, width: '60%', borderRadius: 4 }} />
+            </>
+          ) : (
+            <>
+              <div className="stat-value">{value}</div>
+              {subtitle && <div className="stat-change">{subtitle}</div>}
+            </>
+          )}
         </div>
         <div className="stat-icon" style={{ background: primary ? 'rgba(255,255,255,0.2)' : iconBg, color: primary ? '#fff' : iconColor }}>
           <Icon size={20} />
@@ -36,7 +55,7 @@ function StatCard({ icon: Icon, label, value, subtitle, primary, iconBg, iconCol
       </div>
     </div>
   )
-}
+})
 
 export default function DashboardPage() {
   const [connections, setConnections] = useState([])
@@ -63,7 +82,7 @@ export default function DashboardPage() {
       .catch((err) => { setError(err.message); setLoading(false) })
   }, [selectedConn])
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     if (!selectedConn) return
     setLoading(true)
     setError(null)
@@ -71,16 +90,24 @@ export default function DashboardPage() {
       .then(setAnalytics)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }
+  }, [selectedConn])
 
-  const tooltipStyle = {
-    backgroundColor: 'var(--tooltip-bg)',
-    border: '1px solid var(--tooltip-border)',
-    borderRadius: 10,
-    color: 'var(--tooltip-text)',
-    fontSize: 13,
-    boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-  }
+  // Derived / memoised data
+  const sortedTables = useMemo(
+    () => analytics?.tables?.slice().sort((a, b) => b.row_count - a.row_count) ?? [],
+    [analytics]
+  )
+  const topColumnsTables = useMemo(
+    () => analytics?.top_tables_by_columns?.slice(0, 7) ?? [],
+    [analytics]
+  )
+  const nullableData = useMemo(
+    () => analytics ? [
+      { name: 'Nullable', value: analytics.nullable_stats.nullable },
+      { name: 'Required', value: analytics.nullable_stats.non_nullable },
+    ] : [],
+    [analytics]
+  )
 
   return (
     <div className="dash-page">
@@ -125,9 +152,9 @@ export default function DashboardPage() {
       {/* Stat Cards */}
       <div className="stat-grid">
         <StatCard icon={Database} label="Active Connections" value={connections.length} subtitle="Databases linked" primary iconBg="rgba(26,127,86,0.12)" iconColor="#1a7f56" />
-        <StatCard icon={Table2} label="Tables & Views" value={analytics ? analytics.total_tables + (analytics.total_views || 0) : '--'} subtitle={analytics ? `${analytics.total_tables} tables, ${analytics.total_views || 0} views` : ''} iconBg="rgba(9,103,210,0.10)" iconColor="#0967d2" />
-        <StatCard icon={Columns3} label="Total Columns" value={analytics ? formatNumber(analytics.total_columns) : '--'} subtitle="Across all tables" iconBg="rgba(139,92,246,0.10)" iconColor="#8b5cf6" />
-        <StatCard icon={Rows3} label="Total Rows" value={analytics ? formatNumber(analytics.total_rows) : '--'} subtitle="Records stored" iconBg="rgba(229,147,10,0.10)" iconColor="#e5930a" />
+        <StatCard loading={loading && !analytics} icon={Table2} label="Tables & Views" value={analytics ? analytics.total_tables + (analytics.total_views || 0) : '--'} subtitle={analytics ? `${analytics.total_tables} tables, ${analytics.total_views || 0} views` : ''} iconBg="rgba(9,103,210,0.10)" iconColor="#0967d2" />
+        <StatCard loading={loading && !analytics} icon={Columns3} label="Total Columns" value={analytics ? formatNumber(analytics.total_columns) : '--'} subtitle="Across all tables" iconBg="rgba(139,92,246,0.10)" iconColor="#8b5cf6" />
+        <StatCard loading={loading && !analytics} icon={Rows3} label="Total Rows" value={analytics ? formatNumber(analytics.total_rows) : '--'} subtitle="Records stored" iconBg="rgba(229,147,10,0.10)" iconColor="#e5930a" />
       </div>
 
       {/* No connections */}
@@ -142,9 +169,12 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Loading */}
+      {/* Skeleton charts while analytics loads */}
       {loading && (
-        <div className="card"><div className="empty-state"><RefreshCw size={36} className="spin" style={{ margin: '0 auto 16px', opacity: 0.3 }} /><p className="text-muted">Analyzing database...</p></div></div>
+        <div className="dash-grid-3">
+          <div className="dash-col-2"><SkeletonChart height={280} /></div>
+          <SkeletonChart height={280} />
+        </div>
       )}
 
       {/* Error */}
@@ -231,7 +261,7 @@ export default function DashboardPage() {
                 <div className="card-header"><h2 className="card-title"><ShieldCheck size={18} /> Column Health</h2></div>
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
-                    <Pie data={[{ name: 'Nullable', value: analytics.nullable_stats.nullable }, { name: 'Required', value: analytics.nullable_stats.non_nullable }]}
+                    <Pie data={nullableData}
                       dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={85} innerRadius={50} paddingAngle={3}
                       label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={{ stroke: 'var(--text-muted)' }}>
                       <Cell fill="#e5930a" /><Cell fill="#1a7f56" />
@@ -252,7 +282,7 @@ export default function DashboardPage() {
                     <YAxis tick={{ fill: 'var(--chart-tick)', fontSize: 10 }} />
                     <Tooltip contentStyle={tooltipStyle} formatter={(v) => [v, 'Columns']} />
                     <Bar dataKey="column_count" radius={[4, 4, 0, 0]} maxBarSize={32}>
-                      {analytics.top_tables_by_columns.slice(0, 7).map((_, i) => (<Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />))}
+                      {topColumnsTables.map((_, i) => (<Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -270,7 +300,7 @@ export default function DashboardPage() {
               <table className="data-table">
                 <thead><tr><th>Table</th><th>Type</th><th style={{ textAlign: 'right' }}>Columns</th><th style={{ textAlign: 'right' }}>Rows</th><th></th></tr></thead>
                 <tbody>
-                  {analytics.tables.sort((a, b) => b.row_count - a.row_count).map((t) => (
+                  {sortedTables.map((t) => (
                     <tr key={t.name}>
                       <td style={{ fontWeight: 500 }}>{t.name}</td>
                       <td><span className={`badge ${t.type === 'view' ? 'badge-info' : 'badge-success'}`}>{t.type}</span></td>

@@ -4,6 +4,7 @@ import {
   RefreshCw, Database, Play, Trash2, Plus, ChevronRight, AlertTriangle,
   CheckCircle2, Clock, Zap, ArrowRight, Code2, Settings2, ToggleLeft, ToggleRight
 } from 'lucide-react'
+import StageLoader from '../components/StageLoader'
 import {
   getConnections, discoverSystems, crossMapConnections,
   listPipelines, createPipeline, runPipeline, deletePipeline,
@@ -130,7 +131,7 @@ function DiscoverTab({ connId, connName }) {
 
   useEffect(() => { load() }, [load])
 
-  if (loading) return <LoadingState text="Scanning database systems..." />
+  if (loading) return <LoadingState kind="discover" />
   if (!data) return <ErrorState onRetry={load} />
 
   const treemapData = data.systems.filter(s => s.tables > 0).map((s, i) => ({
@@ -232,7 +233,7 @@ function CrossMapTab() {
 
   useEffect(() => { load() }, [load])
 
-  if (loading) return <LoadingState text="Analyzing cross-database relationships..." />
+  if (loading) return <LoadingState kind="crossmap" />
   if (!data) return <ErrorState onRetry={load} />
 
   return (
@@ -499,7 +500,7 @@ function AnalyticsTab({ connections, selectedConn }) {
           </div>
 
           <div className="card" style={{ flex: 2 }}>
-            {running && <LoadingState text="Running pipeline..." />}
+            {running && <LoadingState kind="pipeline" inline />}
             {!running && !chartData && (
               <div className="empty-state">
                 <p className="text-muted">Select a pipeline to visualize</p>
@@ -753,7 +754,7 @@ function InsightsTab({ connId, connName }) {
 
   useEffect(() => { load() }, [load])
 
-  if (loading) return <LoadingState text="Generating AI business insights..." />
+  if (loading) return <LoadingState kind="insights" />
   if (!data) return <ErrorState onRetry={() => load(true)} />
 
   return (
@@ -807,13 +808,21 @@ function InsightsTab({ connId, connName }) {
 /* ═══════════════════════════════════════════════════
    SHARED UTILITY COMPONENTS
    ═══════════════════════════════════════════════════ */
-function LoadingState({ text }) {
+const STAGE_MAP = {
+  discover:  ['Connecting to database…', 'Scanning schemas…', 'Discovering systems…', 'Building report…'],
+  crossmap:  ['Fetching connections…', 'Comparing schemas…', 'Mapping relationships…', 'Almost done…'],
+  pipeline:  ['Initializing pipeline…', 'Executing steps…', 'Processing data…'],
+  insights:  ['Reading your data…', 'Analyzing patterns…', 'Generating insights…', 'Almost ready…'],
+}
+
+function LoadingState({ kind = 'discover', inline = false }) {
+  const stages = STAGE_MAP[kind] || STAGE_MAP.discover
+  if (inline) {
+    return <StageLoader stages={stages} compact />
+  }
   return (
     <div className="card">
-      <div className="empty-state">
-        <RefreshCw size={28} className="spin" style={{ margin: '0 auto 12px', opacity: 0.3 }} />
-        <p className="text-muted">{text || 'Loading...'}</p>
-      </div>
+      <StageLoader stages={stages} />
     </div>
   )
 }

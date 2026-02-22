@@ -68,6 +68,9 @@
   --tooltip-border: rgba(0,0,0,0.1);
   --tooltip-text: #1a1a1a;
 
+  --skeleton-base: rgba(0, 0, 0, 0.07);
+  --skeleton-shine: rgba(0, 0, 0, 0.02);
+
   color-scheme: light;
 }
 
@@ -114,6 +117,9 @@
   --tooltip-bg: #1c1c1c;
   --tooltip-border: rgba(255,255,255,0.1);
   --tooltip-text: #e5e5e5;
+
+  --skeleton-base: rgba(255, 255, 255, 0.09);
+  --skeleton-shine: rgba(255, 255, 255, 0.03);
 
   color-scheme: dark;
 }
@@ -3640,6 +3646,25 @@ a:hover {
   white-space: nowrap;
 }
 
+/* ── Skeleton Shimmer ───────────────────────────────── */
+.skeleton {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 25%,
+    var(--skeleton-shine) 50%,
+    var(--skeleton-base) 75%
+  );
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.6s ease infinite;
+  flex-shrink: 0;
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
 /* ── Loading Screen ──────────────────────────────── */
 .loading-screen {
   min-height: 100vh;
@@ -3647,4 +3672,115 @@ a:hover {
   align-items: center;
   justify-content: center;
   background: var(--bg-base);
+}
+
+/* ── Stage Loader ──────────────────────────────────── */
+.stage-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding: 48px 24px;
+}
+
+.stage-icon-ring {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+}
+
+.stage-ring-spinner {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent, var(--primary-light));
+  animation: spin 0.9s linear infinite;
+}
+
+.stage-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 240px;
+}
+
+.stage-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+  transition: opacity 0.35s ease, color 0.35s ease;
+}
+
+.stage-item.done {
+  opacity: 0.45;
+  color: var(--text-muted);
+}
+
+.stage-item.active {
+  opacity: 1;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.stage-item.pending {
+  opacity: 0.25;
+  color: var(--text-muted);
+}
+
+.stage-check {
+  color: var(--accent, var(--primary-light));
+  flex-shrink: 0;
+}
+
+.stage-dot-spin {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent, var(--primary-light));
+  animation: spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+.stage-dot-idle {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border);
+  flex-shrink: 0;
+  margin: 2px;
+}
+
+.stage-text {
+  flex: 1;
+}
+
+/* compact variant — used inline inside cards */
+.stage-loader-compact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+.stage-spinner-sm {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent, var(--primary-light));
+  animation: spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+.stage-msg-compact {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-style: italic;
 }
